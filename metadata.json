@@ -1,0 +1,8 @@
+{
+  "name": "Remix: test New: Hyperlocal Enterprise Dashboard",
+  "description": "Premium multi-vendor SaaS marketplace admin panel",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

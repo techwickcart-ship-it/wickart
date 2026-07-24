@@ -76,64 +76,53 @@ export function VendorRegistrationPage() {
   
   // Form State
   const [formData, setFormData] = useState({
-    fullName: 'Rajesh Kumar',
-    ownerName: 'Rajesh Kumar',
-    mobile: '+91 9876543210',
-    email: 'rajesh.store@example.com',
-    password: 'password123',
-    confirmPassword: 'password123',
-    referralCode: 'VENDOR200',
-    legalName: 'Rajesh Enterprises Pvt Ltd',
+    fullName: '',
+    ownerName: '',
+    mobile: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    referralCode: '',
+    legalName: '',
     businessType: 'Proprietorship',
     category: 'Electronics & Gadgets',
-    storeName: 'City Square Mart',
+    storeName: '',
     storeTimings: 'Fixed Timings (9 AM - 8 PM)',
-    storeDesc: 'Leading retailer for premium electronics, home appliances and accessories.',
-    address1: 'Shop #12, City Square Mall, MG Road',
-    address2: 'Near Central Railway Station',
-    city: 'Mumbai',
-    state: 'Maharashtra',
-    postalCode: '400001',
+    storeDesc: '',
+    address1: '',
+    address2: '',
+    city: '',
+    state: '',
+    postalCode: '',
     deliveryRadius: '10 KM',
     deliveryMode: 'Platform Express Logistics',
     shippingCharge: 'Flat ₹49 per order',
-    aadhaar: '1234 5678 9012',
-    pan: 'ABCDE1234F',
-    gstin: '27ABCDE1234F1Z5',
-    fssai: '11521000001234',
+    aadhaar: '',
+    pan: '',
+    gstin: '',
+    fssai: '',
     taxPreference: 'GST Registered Regular',
-    invoicePrefix: 'CSM-INV-',
-    accountHolder: 'Rajesh Enterprises',
-    bankName: 'HDFC Bank',
-    branch: 'Fort Branch, Mumbai',
-    accountNumber: '50100012345678',
-    ifsc: 'HDFC0000060',
-    upiId: 'rajesh@hdfcbank',
+    invoicePrefix: '',
+    accountHolder: '',
+    bankName: '',
+    branch: '',
+    accountNumber: '',
+    ifsc: '',
+    upiId: '',
     payoutCycle: 'Weekly Every Monday',
     operatingDays: 'Mon-Sat (6 Days)',
     orderCapacity: '50 orders/day',
     returnPolicy: '7 Days Returnable',
     dispatchLeadTime: 'Within 24 Hours',
-    supportPhone: '+91 9876543210',
-    signature: 'Rajesh Kumar'
+    supportPhone: '',
+    signature: ''
   });
 
-  const [uploadedDocsDetails, setUploadedDocsDetails] = useState<Record<string, { fileName: string; fileData?: string; uploadedAt?: string; status?: string }>>({
-    'Aadhaar Front': { fileName: 'aadhaar_front.png', uploadedAt: '22 Jul 2026', status: 'Uploaded' },
-    'Aadhaar Back': { fileName: 'aadhaar_back.png', uploadedAt: '22 Jul 2026', status: 'Uploaded' },
-    'PAN Card': { fileName: 'pan_card.png', uploadedAt: '22 Jul 2026', status: 'Uploaded' },
-    'GST Certificate': { fileName: 'gst_certificate.pdf', uploadedAt: '22 Jul 2026', status: 'Uploaded' }
-  });
+  const [uploadedDocsDetails, setUploadedDocsDetails] = useState<Record<string, { fileName: string; fileData?: string; uploadedAt?: string; status?: string }>>({});
   const [storeLogo, setStoreLogo] = useState<string>('');
   const [storeBanner, setStoreBanner] = useState<string>('');
 
-  const [uploadedDocs, setUploadedDocs] = useState<Record<string, boolean>>({
-    'Aadhaar Front': true,
-    'Aadhaar Back': true,
-    'PAN Card': true,
-    'GST Certificate': true,
-    'Cancelled Cheque': false
-  });
+  const [uploadedDocs, setUploadedDocs] = useState<Record<string, boolean>>({});
 
   const updateField = (key: string, value: string) => {
     setFormData(prev => ({ ...prev, [key]: value }));
@@ -414,21 +403,21 @@ export function VendorRegistrationPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
                   <label className="text-xs font-bold text-slate-700 mb-1 block">Store Address Line 1 *</label>
-                  <input type="text" value={formData.address1} onChange={e => updateField('address1', e.target.value)} className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 outline-none" />
+                  <input type="text" value={formData.address1} onChange={e => updateField('address1', e.target.value)} placeholder="Shop No., Building / Mall Name, Street" className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 outline-none" />
                 </div>
                 <div className="md:col-span-2">
                   <label className="text-xs font-bold text-slate-700 mb-1 block">Landmark / Line 2</label>
-                  <input type="text" value={formData.address2} onChange={e => updateField('address2', e.target.value)} className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 outline-none" />
+                  <input type="text" value={formData.address2} onChange={e => updateField('address2', e.target.value)} placeholder="Near landmark or station" className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 outline-none" />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-700 mb-1 block">City *</label>
-                  <input type="text" value={formData.city} onChange={e => updateField('city', e.target.value)} className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 outline-none" />
+                  <input type="text" value={formData.city} onChange={e => updateField('city', e.target.value)} placeholder="e.g. Mumbai" className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 outline-none" />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-700 mb-1 block">State & Pincode *</label>
                   <div className="flex gap-2">
-                    <input type="text" value={formData.state} onChange={e => updateField('state', e.target.value)} className="w-2/3 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 outline-none" />
-                    <input type="text" value={formData.postalCode} onChange={e => updateField('postalCode', e.target.value)} className="w-1/3 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 outline-none" />
+                    <input type="text" value={formData.state} onChange={e => updateField('state', e.target.value)} placeholder="State" className="w-2/3 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 outline-none" />
+                    <input type="text" value={formData.postalCode} onChange={e => updateField('postalCode', e.target.value)} placeholder="Pincode" className="w-1/3 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 outline-none" />
                   </div>
                 </div>
 

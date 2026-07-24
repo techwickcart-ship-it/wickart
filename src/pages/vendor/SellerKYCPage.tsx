@@ -21,24 +21,18 @@ export function SellerKYCPage() {
     orders: 0,
     revenue: '₹0.00',
     rating: 5.0,
-    gstin: '27ABCDE1234F1Z5',
+    gstin: '',
     documents: {},
     bankDetails: {
-      accountName: 'Store Account',
-      bankName: 'HDFC Bank',
-      accountNumber: '50100012345678',
-      ifscCode: 'HDFC0000060'
+      accountName: '',
+      bankName: '',
+      accountNumber: '',
+      ifscCode: ''
     }
   };
 
   const [documents, setDocuments] = useState<Record<string, { fileName: string; fileData?: string; uploadedAt?: string; status?: string }>>(
-    currentSeller?.documents || {
-      'Aadhaar Front': { fileName: 'aadhaar_front.png', uploadedAt: '22 Jul 2026', status: 'Verified' },
-      'Aadhaar Back': { fileName: 'aadhaar_back.png', uploadedAt: '22 Jul 2026', status: 'Verified' },
-      'PAN Card': { fileName: 'pan_card.png', uploadedAt: '22 Jul 2026', status: 'Verified' },
-      'GST Certificate': { fileName: 'gst_certificate.pdf', uploadedAt: '22 Jul 2026', status: 'Verified' },
-      'Cancelled Cheque': { fileName: 'cancelled_cheque.png', uploadedAt: '22 Jul 2026', status: 'Verified' }
-    }
+    currentSeller?.documents || {}
   );
 
   const [previewDoc, setPreviewDoc] = useState<{ title: string; fileName: string; fileData?: string } | null>(null);
@@ -46,13 +40,13 @@ export function SellerKYCPage() {
 
   // Bank & Tax details state
   const [bankDetails, setBankDetails] = useState({
-    bankName: currentSeller?.bankDetails?.bankName || 'HDFC Bank',
-    accountName: currentSeller?.bankDetails?.accountName || currentSeller?.name || 'Store Account',
-    accountNumber: currentSeller?.bankDetails?.accountNumber || '50100012345678',
-    ifscCode: currentSeller?.bankDetails?.ifscCode || 'HDFC0000060'
+    bankName: currentSeller?.bankDetails?.bankName || '',
+    accountName: currentSeller?.bankDetails?.accountName || currentSeller?.name || '',
+    accountNumber: currentSeller?.bankDetails?.accountNumber || '',
+    ifscCode: currentSeller?.bankDetails?.ifscCode || ''
   });
 
-  const [gstin, setGstin] = useState(currentSeller?.gstin || '27ABCDE1234F1Z5');
+  const [gstin, setGstin] = useState(currentSeller?.gstin || '');
 
   const handleFileUpload = (docName: string, file: File) => {
     const reader = new FileReader();
@@ -262,6 +256,7 @@ export function SellerKYCPage() {
               <label className="block text-xs font-bold text-slate-700 mb-1">Bank Name *</label>
               <input 
                 type="text" 
+                placeholder="e.g. HDFC Bank"
                 value={bankDetails.bankName}
                 onChange={(e) => setBankDetails({ ...bankDetails, bankName: e.target.value })}
                 className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:border-blue-500 outline-none"
@@ -272,6 +267,7 @@ export function SellerKYCPage() {
               <label className="block text-xs font-bold text-slate-700 mb-1">Account Holder Name *</label>
               <input 
                 type="text" 
+                placeholder="Full name as in bank account"
                 value={bankDetails.accountName}
                 onChange={(e) => setBankDetails({ ...bankDetails, accountName: e.target.value })}
                 className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:border-blue-500 outline-none"
@@ -282,6 +278,7 @@ export function SellerKYCPage() {
               <label className="block text-xs font-bold text-slate-700 mb-1">Account Number *</label>
               <input 
                 type="text" 
+                placeholder="10 to 16 digit account number"
                 value={bankDetails.accountNumber}
                 onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
                 className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-semibold focus:border-blue-500 outline-none"
@@ -292,6 +289,7 @@ export function SellerKYCPage() {
               <label className="block text-xs font-bold text-slate-700 mb-1">IFSC Code *</label>
               <input 
                 type="text" 
+                placeholder="e.g. HDFC0000060"
                 value={bankDetails.ifscCode}
                 onChange={(e) => setBankDetails({ ...bankDetails, ifscCode: e.target.value })}
                 className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-semibold focus:border-blue-500 outline-none uppercase"
@@ -304,6 +302,7 @@ export function SellerKYCPage() {
               <label className="block text-xs font-bold text-slate-700 mb-1">GSTIN Number (Goods & Services Tax ID)</label>
               <input 
                 type="text" 
+                placeholder="27ABCDE1234F1Z5"
                 value={gstin}
                 onChange={(e) => setGstin(e.target.value)}
                 className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-semibold focus:border-blue-500 outline-none uppercase"

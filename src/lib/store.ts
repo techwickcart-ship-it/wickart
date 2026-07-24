@@ -23,6 +23,7 @@ export interface Product {
   comboItems?: string;
   comboDiscount?: string;
   comboTag?: string;
+  stock?: number | string;
 }
 
 export interface Brand {

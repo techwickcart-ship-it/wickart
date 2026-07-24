@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Filter, X, ArrowUpDown, Tag, Search } from 'lucide-react';
+import { Filter, X, ArrowUpDown, Tag, Search, DollarSign, Star, CheckCircle, RefreshCw, SlidersHorizontal } from 'lucide-react';
 import { ProductCard } from './ProductCard';
 import { marketplaceStore, useMarketplaceData } from '../../lib/store';
 import { CartItem } from '../../lib/cartStore';
@@ -37,6 +37,10 @@ export function ProductsPage({
   const brands = useMarketplaceData('brands', () => marketplaceStore.getBrands());
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedBrand, setSelectedBrand] = useState<string>('All');
+  const [minPrice, setMinPrice] = useState<string>('');
+  const [maxPrice, setMaxPrice] = useState<string>('');
+  const [inStockOnly, setInStockOnly] = useState<boolean>(false);
+  const [minRating, setMinRating] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState<string>(externalSearchQuery);
   const [sortBy, setSortBy] = useState<'default' | 'price-low' | 'price-high' | 'rating'>('default');
   const [showFilterBar, setShowFilterBar] = useState<boolean>(false);
@@ -54,6 +58,25 @@ export function ProductsPage({
       onSearchQueryChange(val);
     }
   };
+
+  const handleClearAllFilters = () => {
+    setSelectedCategory('All');
+    setSelectedBrand('All');
+    setMinPrice('');
+    setMaxPrice('');
+    setInStockOnly(false);
+    setMinRating(0);
+    handleQueryChange('');
+  };
+
+  let activeFilterCount = 0;
+  if (selectedCategory !== 'All') activeFilterCount++;
+  if (selectedBrand !== 'All') activeFilterCount++;
+  if (minPrice !== '') activeFilterCount++;
+  if (maxPrice !== '') activeFilterCount++;
+  if (inStockOnly) activeFilterCount++;
+  if (minRating > 0) activeFilterCount++;
+  if (searchQuery.trim() !== '') activeFilterCount++;
 
   const categories = ['All', 'Beverages', 'Electronics', 'Grocery', 'Fashion', 'Beauty & Health', 'Home & Kitchen', 'Fitness', 'Personal Care', 'Accessories'];
 
@@ -77,6 +100,29 @@ export function ProductsPage({
       }
     }
 
+    // Price range filter
+    const itemPrice = parseFloat(product.price.toString().replace(/[^0-9.]/g, '')) || 0;
+    if (minPrice !== '') {
+      const minP = parseFloat(minPrice);
+      if (!isNaN(minP) && itemPrice < minP) return false;
+    }
+    if (maxPrice !== '') {
+      const maxP = parseFloat(maxPrice);
+      if (!isNaN(maxP) && itemPrice > maxP) return false;
+    }
+
+    // Stock filter
+    if (inStockOnly) {
+      const stockVal = typeof product.stock === 'number' ? product.stock : parseInt(product.stock || '0', 10);
+      if (isNaN(stockVal) || stockVal <= 0) return false;
+    }
+
+    // Rating filter
+    if (minRating > 0) {
+      const ratingVal = typeof product.rating === 'number' ? product.rating : parseFloat(product.rating || '0');
+      if (ratingVal < minRating) return false;
+    }
+
     // Category filter
     if (selectedCategory === 'All') return true;
     const catLower = selectedCategory.toLowerCase();
@@ -94,18 +140,18 @@ export function ProductsPage({
 
   if (sortBy === 'price-low') {
     filteredProducts = [...filteredProducts].sort((a, b) => {
-      const pa = parseFloat(a.price.replace(/[^0-9.]/g, '')) || 0;
-      const pb = parseFloat(b.price.replace(/[^0-9.]/g, '')) || 0;
+      const pa = parseFloat(a.price.toString().replace(/[^0-9.]/g, '')) || 0;
+      const pb = parseFloat(b.price.toString().replace(/[^0-9.]/g, '')) || 0;
       return pa - pb;
     });
   } else if (sortBy === 'price-high') {
     filteredProducts = [...filteredProducts].sort((a, b) => {
-      const pa = parseFloat(a.price.replace(/[^0-9.]/g, '')) || 0;
-      const pb = parseFloat(b.price.replace(/[^0-9.]/g, '')) || 0;
+      const pa = parseFloat(a.price.toString().replace(/[^0-9.]/g, '')) || 0;
+      const pb = parseFloat(b.price.toString().replace(/[^0-9.]/g, '')) || 0;
       return pb - pa;
     });
   } else if (sortBy === 'rating') {
-    filteredProducts = [...filteredProducts].sort((a, b) => b.rating - a.rating);
+    filteredProducts = [...filteredProducts].sort((a, b) => (b.rating || 0) - (a.rating || 0));
   }
 
   return (
@@ -149,16 +195,20 @@ export function ProductsPage({
 
             <button 
               onClick={() => setShowFilterBar(!showFilterBar)}
-              className={`flex items-center gap-2 px-4 py-2 font-bold text-xs rounded-xl transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-4 py-2 font-bold text-xs rounded-xl transition-all cursor-pointer shadow-2xs ${
                 showFilterBar ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
             >
                <Filter className="w-3.5 h-3.5" /> 
                <span>Filter & Sort</span>
-               {selectedCategory !== 'All' && <span className="bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">{selectedCategory}</span>}
+               {activeFilterCount > 0 && (
+                 <span className="bg-blue-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">
+                   {activeFilterCount}
+                 </span>
+               )}
             </button>
 
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/60">
                <ArrowUpDown className="w-3.5 h-3.5 text-slate-500 ml-2" />
                <select 
                  value={sortBy} 
@@ -174,9 +224,85 @@ export function ProductsPage({
          </div>
       </div>
 
-      {/* Interactive Category & Brand Filter Pills */}
+      {/* Fully Functional Filter Drawer */}
       {showFilterBar && (
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-8 animate-in slide-in-from-top-2 duration-300 space-y-4">
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 mb-8 animate-in slide-in-from-top-2 duration-300 space-y-5 shadow-xs">
+           <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
+             <div className="flex items-center gap-2">
+               <SlidersHorizontal className="w-4 h-4 text-blue-600" />
+               <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">Advanced Product Filters</h3>
+             </div>
+             {activeFilterCount > 0 && (
+               <button 
+                 onClick={handleClearAllFilters} 
+                 className="text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-1 rounded-lg transition-colors cursor-pointer flex items-center gap-1 border border-rose-200/60"
+               >
+                 <RefreshCw className="w-3 h-3" /> Clear All Filters ({activeFilterCount})
+               </button>
+             )}
+           </div>
+
+           {/* Price & Stock & Rating Filter Grid */}
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white p-4 rounded-xl border border-slate-200/80">
+             {/* Price Range */}
+             <div className="space-y-1.5">
+               <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                 <DollarSign className="w-3.5 h-3.5 text-emerald-600" /> Price Range (₹)
+               </label>
+               <div className="flex items-center gap-2">
+                 <input 
+                   type="number" 
+                   placeholder="Min ₹" 
+                   value={minPrice} 
+                   onChange={(e) => setMinPrice(e.target.value)}
+                   className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold focus:bg-white focus:border-blue-500 outline-none"
+                 />
+                 <span className="text-slate-400 font-bold">-</span>
+                 <input 
+                   type="number" 
+                   placeholder="Max ₹" 
+                   value={maxPrice} 
+                   onChange={(e) => setMaxPrice(e.target.value)}
+                   className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold focus:bg-white focus:border-blue-500 outline-none"
+                 />
+               </div>
+             </div>
+
+             {/* Minimum Rating */}
+             <div className="space-y-1.5">
+               <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                 <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" /> Minimum Rating
+               </label>
+               <select 
+                 value={minRating}
+                 onChange={(e) => setMinRating(Number(e.target.value))}
+                 className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:bg-white focus:border-blue-500 outline-none cursor-pointer"
+               >
+                 <option value={0}>All Ratings</option>
+                 <option value={4.5}>4.5★ & Above</option>
+                 <option value={4.0}>4.0★ & Above</option>
+                 <option value={3.5}>3.5★ & Above</option>
+               </select>
+             </div>
+
+             {/* Availability Checkbox */}
+             <div className="space-y-1.5 flex flex-col justify-center">
+               <label className="text-xs font-bold text-slate-700 flex items-center gap-1 mb-1">
+                 <CheckCircle className="w-3.5 h-3.5 text-blue-600" /> Availability
+               </label>
+               <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer bg-slate-50 hover:bg-slate-100 px-3 py-2 rounded-lg border border-slate-200/80 transition-colors">
+                 <input 
+                   type="checkbox" 
+                   checked={inStockOnly} 
+                   onChange={(e) => setInStockOnly(e.target.checked)}
+                   className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                 />
+                 <span>In Stock Items Only</span>
+               </label>
+             </div>
+           </div>
+
+           {/* Categories list */}
            <div>
              <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
@@ -208,6 +334,7 @@ export function ProductsPage({
              </div>
            </div>
 
+           {/* Brands list */}
            <div className="pt-3 border-t border-slate-200/60">
              <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
@@ -287,6 +414,19 @@ export function ProductsPage({
           />
         ))}
       </div>
+
+      {filteredProducts.length === 0 && (
+        <div className="text-center py-16 bg-slate-50 border border-slate-200 rounded-2xl p-8">
+          <p className="text-lg font-bold text-slate-800">No products found matching your filters</p>
+          <p className="text-xs text-slate-500 mt-1 mb-4">Try clearing some filters or searching for something else</p>
+          <button 
+            onClick={handleClearAllFilters} 
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
+          >
+            Clear All Filters
+          </button>
+        </div>
+      )}
       
       {/* Top Categories Section at the bottom */}
       <section className="pt-24 pb-8">
@@ -322,3 +462,4 @@ export function ProductsPage({
     </div>
   );
 }
+

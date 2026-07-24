@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShoppingCart, Star, Heart, Repeat, Search, Minus, Plus, Trash2 } from 'lucide-react';
+import { ShoppingCart, Star, Heart, Repeat, Search, Minus, Plus, Trash2, Package } from 'lucide-react';
 import { CartItem } from '../../lib/cartStore';
 
 interface ProductCardProps { 
@@ -45,13 +45,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   return (
     <div className="group bg-white rounded-2xl border border-slate-100 overflow-hidden hover:border-blue-200 hover:shadow-xl hover:shadow-blue-900/5 transition-all duration-300 relative flex flex-col justify-between">
       <div>
-        <div className="relative aspect-square overflow-hidden bg-slate-50">
-          <img 
-            src={product.image} 
-            alt={product.name} 
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer" 
-            onClick={handleProductClick}
-          />
+        <div className="relative aspect-square overflow-hidden bg-slate-50 flex items-center justify-center">
+          {product.image ? (
+            <img 
+              src={product.image} 
+              alt={product.name} 
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer" 
+              onClick={handleProductClick}
+              onError={(e) => {
+                (e.target as HTMLElement).style.display = 'none';
+              }}
+            />
+          ) : (
+            <div onClick={handleProductClick} className="w-full h-full flex flex-col items-center justify-center bg-slate-100 text-slate-400 cursor-pointer hover:bg-slate-200/60 transition-colors">
+              <Package className="w-10 h-10 mb-1 opacity-40 text-slate-500" />
+              <span className="text-[10px] font-bold tracking-wider uppercase text-slate-400">No Image</span>
+            </div>
+          )}
           
           {/* Discount/Tag Badge */}
           {product.tag && (

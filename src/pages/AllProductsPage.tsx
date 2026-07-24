@@ -30,7 +30,7 @@ export function AllProductsPage({ onNavigate }: AllProductsPageProps) {
   const [editVariants, setEditVariants] = useState('');
 
   // Dynamic Categories for filter dropdown
-  const categories = ['All', ...Array.from(new Set([...categoriesList.map(c => c.name), 'Grocery', 'Electronics', 'Fashion', 'Beverages', 'Beauty & Health', 'Home & Kitchen']))];
+  const categories = ['All', ...Array.from(new Set([...categoriesList.map(c => c.name), ...products.map(p => p.category).filter(Boolean)]))];
   
   // Extract unique vendors
   const vendors = ['All', ...Array.from(new Set(products.map(p => p.vendor).filter(Boolean)))];

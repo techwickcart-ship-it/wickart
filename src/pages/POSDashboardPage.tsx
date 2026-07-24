@@ -39,17 +39,7 @@ export function POSDashboardPage() {
   // Success Receipt Modal state
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
 
-  // Default products if store is empty
-  const defaultProducts = [
-    { id: 101, name: 'Premium Wireless Headphones', price: '2999', rating: 4.8, image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200' },
-    { id: 102, name: 'Organic Green Tea (250g)', price: '450', rating: 4.9, image: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=200' },
-    { id: 103, name: 'Smart Fitness Band', price: '1299', rating: 4.5, image: 'https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?w=200' },
-    { id: 104, name: 'Breakfast Essentials Combo Pack', price: '699', rating: 4.9, image: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=200', isComboOffer: true, comboTitle: 'Milk 1L + Wheat Bread + Amul Butter', comboTag: 'SUPER COMBO' },
-    { id: 105, name: 'Yoga Mat with Alignment Lines', price: '999', rating: 4.6, image: 'https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?w=200' },
-    { id: 106, name: 'Ceramic Coffee Mug', price: '350', rating: 4.4, image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=200' }
-  ];
-
-  const availableProducts = storeProducts.length > 0 ? storeProducts : defaultProducts;
+  const availableProducts = storeProducts;
 
   const filteredProducts = availableProducts.filter(p => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

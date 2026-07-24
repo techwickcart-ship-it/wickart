@@ -3,12 +3,12 @@ export function compressImage(file: File, maxWidth = 500, maxHeight = 500, quali
     const reader = new FileReader();
     reader.onerror = () => {
       // Fallback to placeholder if unreadable
-      resolve('https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400');
+      resolve('');
     };
     reader.onload = (e) => {
       const src = e.target?.result as string;
       if (!src) {
-        resolve('https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400');
+        resolve('');
         return;
       }
       const img = new Image();

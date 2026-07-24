@@ -30,7 +30,7 @@ export function BrandsPage() {
     if (brandName.trim()) {
       marketplaceStore.addBrand({
         name: brandName.trim(),
-        logo: brandLogo.trim() || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=200',
+        logo: brandLogo.trim() || '',
         status: brandStatus,
         count: 0
       });
@@ -56,7 +56,7 @@ export function BrandsPage() {
     if (brandName.trim()) {
       marketplaceStore.updateBrand(id, {
         name: brandName.trim(),
-        logo: brandLogo.trim() || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=200',
+        logo: brandLogo.trim() || '',
         status: brandStatus
       });
       setEditingId(null);
@@ -342,7 +342,7 @@ export function BrandsPage() {
                   </div>
                   <input 
                     type="text" 
-                    placeholder="https://images.unsplash.com/..." 
+                    placeholder="https://example.com/logo.png" 
                     value={brandLogo}
                     onChange={(e) => setBrandLogo(e.target.value)}
                     className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:border-blue-500 outline-none"

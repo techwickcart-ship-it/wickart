@@ -11,28 +11,7 @@ export interface CartItem {
 
 const CART_STORAGE_KEY = 'wikcart_cart_items';
 
-const INITIAL_CART: CartItem[] = [
-  {
-    id: 1,
-    name: 'Cold Brew Coffee',
-    price: 400,
-    priceString: '₹400',
-    mrp: '₹500',
-    image: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&q=80&w=200',
-    vendor: 'City Square Mart',
-    quantity: 1
-  },
-  {
-    id: 3,
-    name: 'Organic Brown Sugar',
-    price: 120,
-    priceString: '₹120',
-    mrp: '₹150',
-    image: 'https://images.unsplash.com/photo-1581428982868-e410dd447aa4?auto=format&fit=crop&q=80&w=200',
-    vendor: 'Fresh Organic Foods',
-    quantity: 1
-  }
-];
+const INITIAL_CART: CartItem[] = [];
 
 export function parsePriceNumber(priceVal: string | number | undefined): number {
   if (typeof priceVal === 'number') return priceVal;

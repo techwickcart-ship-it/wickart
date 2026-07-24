@@ -22,7 +22,7 @@ export function SubCategoriesPage() {
   const handleStartAdd = () => {
     setEditingId(null);
     setSubName('');
-    setParentCategory(categories[0]?.name || 'Grocery');
+    setParentCategory(categories[0]?.name || '');
     setImageUrl('');
     setImagePreview(null);
     setStatus('Active');
@@ -63,7 +63,7 @@ export function SubCategoriesPage() {
       return;
     }
 
-    const finalImage = imageUrl.trim() || imagePreview || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=200&h=200';
+    const finalImage = imageUrl.trim() || imagePreview || '';
 
     if (editingId) {
       marketplaceStore.updateSubcategory(editingId, {
@@ -204,7 +204,7 @@ export function SubCategoriesPage() {
                     <ImageIcon className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input 
                       type="url" 
-                      placeholder="https://images.unsplash.com/photo-..."
+                      placeholder="https://example.com/subcategory.png"
                       value={imageUrl}
                       onChange={(e) => {
                         setImageUrl(e.target.value);

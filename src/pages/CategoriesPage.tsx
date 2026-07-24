@@ -19,14 +19,7 @@ export function CategoriesPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  const PRESET_IMAGES = [
-    'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=300&h=300', // Grocery
-    'https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&q=80&w=300&h=300', // Electronics
-    'https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&q=80&w=300&h=300', // Fashion
-    'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&q=80&w=300&h=300', // Home Appliance
-    'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&q=80&w=300&h=300', // Jewellery
-    'https://images.unsplash.com/photo-1522335789203-aabd1fc54c28?auto=format&fit=crop&q=80&w=300&h=300', // Beauty
-  ];
+  const PRESET_IMAGES: string[] = [];
 
   const handleStartAdd = () => {
     setEditingId(null);
@@ -69,7 +62,7 @@ export function CategoriesPage() {
       return;
     }
 
-    const finalImage = imageUrl.trim() || imagePreview || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=300&h=300';
+    const finalImage = imageUrl.trim() || imagePreview || '';
 
     if (editingId) {
       marketplaceStore.updateCategory(editingId, {
@@ -200,7 +193,7 @@ export function CategoriesPage() {
                     <ImageIcon className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input 
                       type="url" 
-                      placeholder="https://images.unsplash.com/photo-..."
+                      placeholder="https://example.com/category.png"
                       value={imageUrl}
                       onChange={(e) => {
                         setImageUrl(e.target.value);

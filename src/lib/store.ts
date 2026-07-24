@@ -137,56 +137,7 @@ const INITIAL_SELLERS: Seller[] = [];
 const INITIAL_COUPONS: Coupon[] = [];
 const INITIAL_DELIVERY_PARTNERS: DeliveryPartner[] = [];
 
-const INITIAL_WAREHOUSES: Warehouse[] = [
-  {
-    id: 'WH-001',
-    name: 'Main Warehouse - Central Hub',
-    code: 'WH-SLN-01',
-    managerName: 'Rajesh Sharma',
-    phone: '+91 9821012345',
-    email: 'wh.central@wikcart.in',
-    address: 'Civil Lines Industrial Area, Near Railway Station',
-    city: 'Sultanpur',
-    state: 'Uttar Pradesh',
-    pincode: '228001',
-    capacitySqFt: 25000,
-    occupancyPercentage: 62.5,
-    isFulfillmentCenter: true,
-    status: 'Active'
-  },
-  {
-    id: 'WH-002',
-    name: 'North Sultanpur Logistics Depot',
-    code: 'WH-SLN-02',
-    managerName: 'Vikas Verma',
-    phone: '+91 9821098765',
-    email: 'wh.north@wikcart.in',
-    address: 'Lucknow Road Highway Bypass',
-    city: 'Sultanpur',
-    state: 'Uttar Pradesh',
-    pincode: '228002',
-    capacitySqFt: 15000,
-    occupancyPercentage: 38.0,
-    isFulfillmentCenter: true,
-    status: 'Active'
-  },
-  {
-    id: 'WH-003',
-    name: 'South Express Fulfilment Center',
-    code: 'WH-SLN-03',
-    managerName: 'Suresh Gupta',
-    phone: '+91 9821055443',
-    email: 'wh.south@wikcart.in',
-    address: 'Kurebhar Link Road',
-    city: 'Sultanpur',
-    state: 'Uttar Pradesh',
-    pincode: '228003',
-    capacitySqFt: 18000,
-    occupancyPercentage: 20.0,
-    isFulfillmentCenter: true,
-    status: 'Active'
-  }
-];
+const INITIAL_WAREHOUSES: Warehouse[] = [];
 
 export interface VendorRegistration {
   id: string;
@@ -218,13 +169,7 @@ export interface VendorRegistration {
   documents?: Record<string, { fileName: string; fileData?: string; uploadedAt?: string; status?: string }>;
 }
 
-const INITIAL_TAX_RULES: TaxRule[] = [
-  { id: '1', name: 'Standard GST - 18%', rate: '18%', appliesTo: 'Electronics, Fashion', status: 'Active' },
-  { id: '2', name: 'Lower GST - 12%', rate: '12%', appliesTo: 'Processed Foods', status: 'Active' },
-  { id: '3', name: 'Reduced GST - 5%', rate: '5%', appliesTo: 'Food, Groceries', status: 'Active' },
-  { id: '4', name: 'Zero Tax - 0%', rate: '0%', appliesTo: 'Fresh Produce', status: 'Active' },
-  { id: '5', name: 'Luxury GST - 28%', rate: '28%', appliesTo: 'Luxury Goods', status: 'Active' },
-];
+const INITIAL_TAX_RULES: TaxRule[] = [];
 
 const INITIAL_VENDOR_REGISTRATIONS: VendorRegistration[] = [];
 const INITIAL_CATEGORIES: any[] = [];
@@ -277,7 +222,7 @@ export const marketplaceStore = {
       price: product.price || '₹0',
       mrp: product.mrp || '',
       rating: product.rating || 4.5,
-      image: product.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400',
+      image: product.image || '',
       tag: product.tag || 'New',
       vendor: product.vendor || 'City Square Mart',
       sellerId: product.sellerId || '1',
@@ -791,7 +736,7 @@ export const marketplaceStore = {
     const newCat = {
       id: newId,
       name: category.name.trim(),
-      image: category.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=300&h=300',
+      image: category.image || '',
       iconName: category.iconName || 'Tv',
       status: category.status || 'Active',
       count: category.count || 0
@@ -829,7 +774,7 @@ export const marketplaceStore = {
       id: newId,
       name: subcategory.name.trim(),
       parent: subcategory.parent,
-      image: subcategory.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=200&h=200',
+      image: subcategory.image || '',
       status: subcategory.status || 'Active',
       count: subcategory.count || 0
     };
@@ -1268,7 +1213,7 @@ export const marketplaceStore = {
       id: newId,
       name: brand.name || 'New Brand',
       status: brand.status || 'active',
-      logo: brand.logo || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=200',
+      logo: brand.logo || '',
       count: brand.count || 0
     };
     list.unshift(item);
@@ -1449,20 +1394,16 @@ export { useMarketplaceData } from './hooks';
 
 // Ensure software starts completely clean without any pre-uploaded mock data or images
 if (typeof window !== 'undefined') {
-  if (localStorage.getItem('initialCleanSlateApplied_v3') !== 'true') {
+  if (localStorage.getItem('initialCleanSlateApplied_v4') !== 'true') {
     const defaultCleanKeys = [
       'products', 'orders', 'sellers', 'coupons', 'deliveryPartners',
       'categories', 'subcategories', 'withdrawals', 'customers',
-      'globalInventory', 'transactions', 'walletTransactions', 'vendorRegistrations', 'brands'
+      'globalInventory', 'transactions', 'walletTransactions', 'vendorRegistrations', 'brands', 'warehouses'
     ];
     defaultCleanKeys.forEach(k => {
-      // If items exist and match old pre-uploaded demo data, wipe or reset them
-      const current = localStorage.getItem(k);
-      if (!current || current === '[]' || current.includes('Cold Brew Coffee') || current.includes('Nike')) {
-        localStorage.setItem(k, JSON.stringify([]));
-      }
+      localStorage.setItem(k, JSON.stringify([]));
     });
-    localStorage.setItem('initialCleanSlateApplied_v3', 'true');
+    localStorage.setItem('initialCleanSlateApplied_v4', 'true');
   }
 }
 

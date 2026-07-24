@@ -25,7 +25,7 @@ export function SellerProductsPage({ initialTab }: SellerProductsPageProps) {
   // Form state for new product
   const liveBrands = useMarketplaceData('brands', () => marketplaceStore.getBrands());
   const [newProductName, setNewProductName] = useState('');
-  const [newCategory, setNewCategory] = useState('Grocery');
+  const [newCategory, setNewCategory] = useState('');
   const [newBrand, setNewBrand] = useState('Generic');
   const [newPrice, setNewPrice] = useState('');
   const [newMrp, setNewMrp] = useState('');
@@ -64,7 +64,7 @@ export function SellerProductsPage({ initialTab }: SellerProductsPageProps) {
       brand: newBrand || 'Generic',
       vendor: activeSellerStoreName,
       sellerId: activeSellerId,
-      image: newImage || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600',
+      image: newImage || '',
       shortDescription: newDesc || `${newProductName} sourced and fulfilled by ${activeSellerStoreName}.`,
       description: newDesc || `${newProductName} sourced and fulfilled by ${activeSellerStoreName}.`,
       rating: 4.8,
@@ -318,10 +318,10 @@ export function SellerProductsPage({ initialTab }: SellerProductsPageProps) {
                   type="url" 
                   value={newImage}
                   onChange={(e) => setNewImage(e.target.value)}
-                  placeholder="https://images.unsplash.com/..." 
+                  placeholder="https://example.com/image.png" 
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 outline-none font-medium"
                 />
-                <p className="text-[11px] text-slate-400 mt-1">Leave empty to use a high quality product photo placeholder.</p>
+                <p className="text-[11px] text-slate-400 mt-1">Leave empty if uploading file directly or to use default icon.</p>
               </div>
 
               <div>

@@ -33,22 +33,23 @@ export function ProductDetailsPage({
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
 
-  // Fallback to first available product if none passed
   const allProducts = marketplaceStore.getProducts();
-  const product = incomingProduct || allProducts[0] || {
-    id: 1,
-    name: 'Fresh Organic Apples',
-    price: '₹120',
-    mrp: '₹150',
-    rating: 4.8,
-    reviews: 24,
-    image: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?auto=format&fit=crop&q=80&w=600',
-    vendor: 'City Square Mart',
-    category: 'Grocery',
-    sizes: ['250g', '500g', '1kg'],
-    variants: ['Fresh Standard', 'Organic Premium'],
-    description: 'Crisp and juicy farm-fresh organic apples sourced directly from verified local orchards.'
-  };
+  const product = incomingProduct || allProducts[0];
+
+  if (!product) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-20 text-center">
+        <h2 className="text-xl font-bold text-slate-800 mb-2">No Product Selected</h2>
+        <p className="text-xs text-slate-500 mb-6">There are no products currently selected or available in the catalog.</p>
+        <button 
+          onClick={() => onNavigate('Products')}
+          className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer"
+        >
+          Browse All Products
+        </button>
+      </div>
+    );
+  }
 
   const availableSizes: string[] = Array.isArray(product.sizes) && product.sizes.length > 0
     ? product.sizes

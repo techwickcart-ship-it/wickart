@@ -19,12 +19,12 @@ interface HomePageProps {
 }
 
 const CATEGORIES = [
-  { name: 'Groceries', image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=200&h=200', color: 'bg-emerald-50' },
-  { name: 'Electronics', image: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&q=80&w=200&h=200', color: 'bg-blue-50' },
-  { name: 'Fashion', image: 'https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&q=80&w=200&h=200', color: 'bg-pink-50' },
-  { name: 'Home & Kitchen', image: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&q=80&w=200&h=200', color: 'bg-amber-50' },
-  { name: 'Beauty', image: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54c28?auto=format&fit=crop&q=80&w=200&h=200', color: 'bg-purple-50' },
-  { name: 'Sports', image: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&q=80&w=200&h=200', color: 'bg-red-50' },
+  { name: 'Groceries', image: '', color: 'bg-emerald-50' },
+  { name: 'Electronics', image: '', color: 'bg-blue-50' },
+  { name: 'Fashion', image: '', color: 'bg-pink-50' },
+  { name: 'Home & Kitchen', image: '', color: 'bg-amber-50' },
+  { name: 'Beauty', image: '', color: 'bg-purple-50' },
+  { name: 'Sports', image: '', color: 'bg-red-50' },
 ];
 
 export function HomePage({ 
@@ -314,8 +314,10 @@ export function HomePage({
                   Claim Offer Now
                </button>
             </div>
-            <div className="relative z-10 w-48 h-48 md:w-64 md:h-64 rounded-full overflow-hidden border-8 border-white/10 shrink-0">
-               <img src="https://images.unsplash.com/photo-1608686207856-001b95cf60ca?auto=format&fit=crop&q=80&w=400" alt="Offers" className="w-full h-full object-cover" />
+            <div className="relative z-10 w-48 h-48 md:w-64 md:h-64 rounded-full overflow-hidden border-8 border-white/10 shrink-0 bg-gradient-to-tr from-amber-500 to-rose-600 flex flex-col items-center justify-center text-white shadow-2xl">
+               <Gift className="w-12 h-12 mb-1" />
+               <span className="text-3xl font-black">50%</span>
+               <span className="text-xs font-bold uppercase tracking-wider">OFF</span>
             </div>
          </div>
       </section>

@@ -24,7 +24,7 @@ export function AddProductPage({ onNavigate }: AddProductPageProps) {
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [mrp, setMrp] = useState('');
-  const [category, setCategory] = useState('Grocery');
+  const [category, setCategory] = useState(storeCategories[0]?.name || '');
   const [customCategory, setCustomCategory] = useState('');
   const [sellerId, setSellerId] = useState('1');
   const [productType, setProductType] = useState('physical');
@@ -202,7 +202,7 @@ export function AddProductPage({ onNavigate }: AddProductPageProps) {
       setName('');
       setPrice('');
       setMrp('');
-      setCategory('Grocery');
+      setCategory(storeCategories[0]?.name || '');
       setCustomCategory('');
       setSizes([]);
       setVariants([]);

@@ -8,7 +8,7 @@ export function AddSellerPage() {
   const [mobile, setMobile] = useState('');
   const [email, setEmail] = useState('');
   const [storeName, setStoreName] = useState('');
-  const [categories, setCategories] = useState('Grocery');
+  const [categories, setCategories] = useState('');
   const [status, setStatus] = useState<'Active' | 'Pending' | 'Suspended'>('Active');
 
   const handleRegister = (e: React.FormEvent) => {

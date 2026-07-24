@@ -34,6 +34,7 @@ export function ProductsPage({
   onSearchQueryChange?: (q: string) => void
 }) {
   const products = useMarketplaceData('products', () => marketplaceStore.getProducts());
+  const storeCategories = useMarketplaceData('categories', () => marketplaceStore.getCategories());
   const brands = useMarketplaceData('brands', () => marketplaceStore.getBrands());
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedBrand, setSelectedBrand] = useState<string>('All');
@@ -78,7 +79,7 @@ export function ProductsPage({
   if (minRating > 0) activeFilterCount++;
   if (searchQuery.trim() !== '') activeFilterCount++;
 
-  const categories = ['All', 'Beverages', 'Electronics', 'Grocery', 'Fashion', 'Beauty & Health', 'Home & Kitchen', 'Fitness', 'Personal Care', 'Accessories'];
+  const categories = ['All', ...Array.from(new Set([...storeCategories.map((c: any) => c.name), ...products.map((p: any) => p.category).filter(Boolean)]))];
 
   let filteredProducts = products.filter(product => {
     // Brand filter
@@ -127,15 +128,7 @@ export function ProductsPage({
     if (selectedCategory === 'All') return true;
     const catLower = selectedCategory.toLowerCase();
     const prodCatLower = (product.category || '').toLowerCase();
-    if (prodCatLower === catLower || prodCatLower.includes(catLower)) return true;
-
-    if (selectedCategory === 'Beverages') return product.name.toLowerCase().includes('tea') || product.name.toLowerCase().includes('coffee') || product.name.toLowerCase().includes('drink') || product.name.toLowerCase().includes('juice');
-    if (selectedCategory === 'Electronics') return product.name.toLowerCase().includes('earbuds') || product.name.toLowerCase().includes('watch') || product.name.toLowerCase().includes('camera') || product.name.toLowerCase().includes('phone');
-    if (selectedCategory === 'Grocery') return product.name.toLowerCase().includes('sugar') || product.name.toLowerCase().includes('butter') || product.name.toLowerCase().includes('atta') || product.name.toLowerCase().includes('rice') || product.name.toLowerCase().includes('oil');
-    if (selectedCategory === 'Fitness') return product.name.toLowerCase().includes('yoga') || product.name.toLowerCase().includes('gym');
-    if (selectedCategory === 'Personal Care') return product.name.toLowerCase().includes('mug') || product.name.toLowerCase().includes('crystal') || product.name.toLowerCase().includes('soap') || product.name.toLowerCase().includes('cream');
-    
-    return false;
+    return prodCatLower === catLower || prodCatLower.includes(catLower);
   });
 
   if (sortBy === 'price-low') {
@@ -438,23 +431,24 @@ export function ProductsPage({
                </h2>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-4 text-center">
-               {[
-                 {name: 'Beverages', img: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&q=80&w=200&h=200'},
-                 {name: 'Electronics', img: 'https://images.unsplash.com/photo-1590658268037-6f16144e5f8e?auto=format&fit=crop&q=80&w=200&h=200'},
-                 {name: 'Grocery', img: 'https://images.unsplash.com/photo-1581428982868-e410dd447aa4?auto=format&fit=crop&q=80&w=200&h=200'},
-                 {name: 'Fitness', img: 'https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?auto=format&fit=crop&q=80&w=200&h=200'},
-                 {name: 'Personal Care', img: 'https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?auto=format&fit=crop&q=80&w=200&h=200'},
-                 {name: 'Jewelry', img: 'https://images.unsplash.com/photo-1599643478514-4a1200ead3f0?auto=format&fit=crop&q=80&w=200&h=200'},
-                 {name: 'Home Security', img: 'https://images.unsplash.com/photo-1557862921-37829c790f19?auto=format&fit=crop&q=80&w=200&h=200'},
-                 {name: 'Tea & Coffee', img: 'https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?auto=format&fit=crop&q=80&w=200&h=200'}
-               ].map((cat, i) => (
-                  <div key={i} className="group cursor-pointer" onClick={() => setSelectedCategory(cat.name)}>
-                     <div className="rounded-[2rem] overflow-hidden bg-slate-100 aspect-square mb-3 shadow-sm border border-slate-200">
-                        <img src={cat.img} alt={cat.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                     </div>
-                     <h3 className="font-medium text-slate-800 text-sm group-hover:text-blue-600 transition-colors">{cat.name}</h3>
-                  </div>
-               ))}
+               {storeCategories.length > 0 ? (
+                 storeCategories.slice(0, 8).map((cat: any, i: number) => (
+                   <div key={cat.id || i} className="group cursor-pointer" onClick={() => setSelectedCategory(cat.name)}>
+                      <div className="rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 aspect-square mb-2.5 shadow-2xs border border-slate-200 flex flex-col items-center justify-center p-3 group-hover:border-blue-400 group-hover:bg-blue-50/50 transition-all overflow-hidden">
+                         {cat.image ? (
+                           <img src={cat.image} alt={cat.name} className="w-full h-full object-cover rounded-xl" />
+                         ) : (
+                           <Tag className="w-6 h-6 text-slate-500 group-hover:text-blue-600 transition-colors" />
+                         )}
+                      </div>
+                      <h3 className="font-bold text-slate-800 text-xs group-hover:text-blue-600 transition-colors line-clamp-1">{cat.name}</h3>
+                   </div>
+                 ))
+               ) : (
+                 <div className="col-span-full py-6 text-center text-slate-400 text-xs font-semibold bg-slate-50/60 rounded-xl border border-slate-100">
+                    No categories created yet. Add categories from Admin Panel.
+                 </div>
+               )}
             </div>
          </div>
       </section>

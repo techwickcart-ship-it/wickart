@@ -30,9 +30,9 @@ export function StoreHeader({
 }: StoreHeaderProps) {
   const [companyName, setCompanyName] = useState(() => localStorage.getItem('companyName') || 'Wikcart');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [customerName, setCustomerName] = useState(() => localStorage.getItem('customerName') || 'John Doe');
+  const [customerName, setCustomerName] = useState(() => localStorage.getItem('customerName') || '');
   const [isCustomerLoggedIn, setIsCustomerLoggedIn] = useState(() => {
-    return localStorage.getItem('isCustomerLoggedIn') === 'true' || !!localStorage.getItem('customerName');
+    return localStorage.getItem('isCustomerLoggedIn') === 'true';
   });
 
   // Search state
@@ -67,9 +67,9 @@ export function StoreHeader({
     };
 
     const handleCustomerAuthUpdate = () => {
-      const loggedIn = localStorage.getItem('isCustomerLoggedIn') === 'true' || !!localStorage.getItem('customerName');
+      const loggedIn = localStorage.getItem('isCustomerLoggedIn') === 'true';
       setIsCustomerLoggedIn(loggedIn);
-      setCustomerName(localStorage.getItem('customerName') || 'John Doe');
+      setCustomerName(localStorage.getItem('customerName') || '');
     };
 
     handleSettingsUpdate();
@@ -88,14 +88,6 @@ export function StoreHeader({
     localStorage.removeItem('customerName');
     localStorage.removeItem('customerUser');
     setIsCustomerLoggedIn(false);
-    window.dispatchEvent(new Event('customerAuthUpdated'));
-  };
-
-  const handleQuickDemoCustomerLogin = () => {
-    localStorage.setItem('isCustomerLoggedIn', 'true');
-    localStorage.setItem('customerName', 'John Doe');
-    setIsCustomerLoggedIn(true);
-    setCustomerName('John Doe');
     window.dispatchEvent(new Event('customerAuthUpdated'));
   };
 
@@ -379,17 +371,10 @@ export function StoreHeader({
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => navigateTo('/customer-registration')} 
-                className="hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 rounded-full transition-colors border border-slate-200/80 cursor-pointer"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 rounded-full transition-colors border border-slate-200/80 cursor-pointer"
               >
                 <User className="w-4 h-4 text-blue-600" />
                 <span>Login / Register</span>
-              </button>
-              <button 
-                onClick={handleQuickDemoCustomerLogin}
-                className="hidden xl:flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-full transition-colors border border-blue-200/60 cursor-pointer"
-                title="Log in as demo customer"
-              >
-                <span>Demo Login</span>
               </button>
             </div>
           )}
@@ -540,12 +525,6 @@ export function StoreHeader({
                   >
                     <User className="w-4.5 h-4.5 text-slate-400" />
                     <span>Login / Register</span>
-                  </button>
-                  <button 
-                    onClick={() => { handleQuickDemoCustomerLogin(); setMobileMenuOpen(false); }} 
-                    className="w-full text-center py-2 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl border border-blue-200 transition-colors"
-                  >
-                    Login as Demo Customer
                   </button>
                 </div>
               )}

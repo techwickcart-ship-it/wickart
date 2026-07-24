@@ -65,13 +65,6 @@ export function AdminLoginPage({ onLogin }: { onLogin: () => void }) {
                <button type="submit" className="w-full py-3.5 bg-slate-900 hover:bg-black text-white font-bold rounded-xl shadow-[0_4px_14px_0_rgb(15,23,42,0.39)] hover:shadow-[0_6px_20px_rgba(15,23,42,0.23)] hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 cursor-pointer">
                  Login to Admin <ArrowRight className="w-4 h-4" />
                </button>
-               <button 
-                 type="button" 
-                 onClick={handleQuickDemoLogin}
-                 className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-all text-xs cursor-pointer border border-slate-200"
-               >
-                 Quick Demo Login (admin / 12345)
-               </button>
              </form>
            </CardContent>
          </Card>

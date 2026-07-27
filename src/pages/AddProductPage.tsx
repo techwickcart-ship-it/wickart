@@ -10,7 +10,18 @@ interface AddProductPageProps {
 
 export function AddProductPage({ onNavigate }: AddProductPageProps) {
   const storeCategories = useMarketplaceData('categories', () => marketplaceStore.getCategories());
+  const storeSubcategories = useMarketplaceData('subcategories', () => marketplaceStore.getSubcategories());
+  const storeProducts = useMarketplaceData('products', () => marketplaceStore.getProducts());
   const liveBrands = useMarketplaceData('brands', () => marketplaceStore.getBrands());
+  const liveSellers = useMarketplaceData('sellers', () => marketplaceStore.getSellers());
+
+  const allAvailableCategories = Array.from(new Set([
+    ...storeCategories.map((c: any) => c.name),
+    ...storeSubcategories.map((sc: any) => sc.name),
+    ...storeSubcategories.map((sc: any) => sc.parent),
+    ...storeProducts.map((p: any) => p.category)
+  ].filter(Boolean))).sort();
+
   // Tags State
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
@@ -24,9 +35,9 @@ export function AddProductPage({ onNavigate }: AddProductPageProps) {
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [mrp, setMrp] = useState('');
-  const [category, setCategory] = useState(storeCategories[0]?.name || '');
+  const [category, setCategory] = useState('');
   const [customCategory, setCustomCategory] = useState('');
-  const [sellerId, setSellerId] = useState('1');
+  const [sellerId, setSellerId] = useState('');
   const [productType, setProductType] = useState('physical');
   const [shortDescription, setShortDescription] = useState('');
   const [description, setDescription] = useState('');
@@ -44,7 +55,7 @@ export function AddProductPage({ onNavigate }: AddProductPageProps) {
   const [tax, setTax] = useState('GST 18%');
   const [indicator, setIndicator] = useState('veg');
   const [madeInCountry, setMadeInCountry] = useState('IN');
-  const [brand, setBrand] = useState('Generic');
+  const [brand, setBrand] = useState('');
   const [totalAllowedQty, setTotalAllowedQty] = useState('100');
   const [minOrderQty, setMinOrderQty] = useState('1');
   const [stepSize, setStepSize] = useState('1');
@@ -202,7 +213,7 @@ export function AddProductPage({ onNavigate }: AddProductPageProps) {
       setName('');
       setPrice('');
       setMrp('');
-      setCategory(storeCategories[0]?.name || '');
+      setCategory('');
       setCustomCategory('');
       setSizes([]);
       setVariants([]);
@@ -228,7 +239,7 @@ export function AddProductPage({ onNavigate }: AddProductPageProps) {
     const finalCategory = customCategory.trim() ? customCategory.trim() : category;
 
     const sellers = marketplaceStore.getSellers();
-    const activeSeller = sellers.find(s => s.id === sellerId) || sellers[0];
+    const activeSeller = sellers.find(s => String(s.id) === String(sellerId));
     
     const rawPrice = price.trim() || '0';
     const formattedPrice = rawPrice.startsWith('₹') ? rawPrice : `₹${rawPrice}`;
@@ -247,7 +258,7 @@ export function AddProductPage({ onNavigate }: AddProductPageProps) {
       media: mediaList,
       images: mediaList,
       sellerId,
-      vendor: activeSeller ? activeSeller.storeName : 'Main Store',
+      vendor: activeSeller ? activeSeller.storeName : (sellerId === 'main' ? 'Main Admin Store' : (sellers[0]?.storeName || 'Main Store')),
       image: primaryImage,
       shortDescription: shortDescription || description || '',
       description: description || shortDescription || '',
@@ -428,10 +439,11 @@ export function AddProductPage({ onNavigate }: AddProductPageProps) {
                     onChange={(e) => setSellerId(e.target.value)} 
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all cursor-pointer"
                   >
-                    <option value="1">City Square Mart</option>
-                    <option value="2">Silicon Valley Store</option>
-                    <option value="3">Fresh Organic Foods</option>
-                    <option value="4">Amit Grocery Hub</option>
+                    <option value="">-- Select Assigned Vendor / Store --</option>
+                    {liveSellers.map((s) => (
+                      <option key={s.id} value={s.id}>{s.storeName || s.name}</option>
+                    ))}
+                    <option value="main">Main Admin Store</option>
                   </select>
                 </div>
                 <div>
@@ -512,6 +524,7 @@ export function AddProductPage({ onNavigate }: AddProductPageProps) {
                     onChange={(e) => setBrand(e.target.value)} 
                     className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all cursor-pointer"
                   >
+                    <option value="">-- Select Brand --</option>
                     {liveBrands.filter(b => b.status === 'active').map((b) => (
                       <option key={b.id} value={b.name}>{b.name}</option>
                     ))}
@@ -522,6 +535,7 @@ export function AddProductPage({ onNavigate }: AddProductPageProps) {
                   <label className="block text-xs font-bold text-slate-700 mb-1">Total Allowed Quantity</label>
                   <input 
                     type="number" 
+                    placeholder="e.g. 100"
                     value={totalAllowedQty} 
                     onChange={(e) => setTotalAllowedQty(e.target.value)} 
                     className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all" 
@@ -531,6 +545,7 @@ export function AddProductPage({ onNavigate }: AddProductPageProps) {
                   <label className="block text-xs font-bold text-slate-700 mb-1">Minimum Order Quantity</label>
                   <input 
                     type="number" 
+                    placeholder="e.g. 1"
                     value={minOrderQty} 
                     onChange={(e) => setMinOrderQty(e.target.value)} 
                     className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all" 
@@ -540,6 +555,7 @@ export function AddProductPage({ onNavigate }: AddProductPageProps) {
                   <label className="block text-xs font-bold text-slate-700 mb-1">HSN Code</label>
                   <input 
                     type="text" 
+                    placeholder="e.g. 090210"
                     value={hsnCode} 
                     onChange={(e) => setHsnCode(e.target.value)} 
                     className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all" 
@@ -549,6 +565,7 @@ export function AddProductPage({ onNavigate }: AddProductPageProps) {
                   <label className="block text-xs font-bold text-slate-700 mb-1">Warranty Period</label>
                   <input 
                     type="text" 
+                    placeholder="e.g. 1 Year Replacement Warranty"
                     value={warranty} 
                     onChange={(e) => setWarranty(e.target.value)} 
                     className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all" 
@@ -784,8 +801,9 @@ export function AddProductPage({ onNavigate }: AddProductPageProps) {
                 }}
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:bg-white focus:border-blue-500 outline-none transition-all cursor-pointer"
               >
-                {storeCategories.map((cat) => (
-                  <option key={cat.id} value={cat.name}>{cat.name}</option>
+                <option value="">-- Select Category --</option>
+                {allAvailableCategories.map((catName) => (
+                  <option key={catName} value={catName}>{catName}</option>
                 ))}
               </select>
 

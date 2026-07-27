@@ -24,9 +24,16 @@ export function SellerProductsPage({ initialTab }: SellerProductsPageProps) {
 
   // Form state for new product
   const liveBrands = useMarketplaceData('brands', () => marketplaceStore.getBrands());
+  const storeCategories = useMarketplaceData('categories', () => marketplaceStore.getCategories());
+  const storeSubcategories = useMarketplaceData('subcategories', () => marketplaceStore.getSubcategories());
+  const allAvailableCategories = Array.from(new Set([
+    ...storeCategories.map((c: any) => c.name),
+    ...storeSubcategories.map((sc: any) => sc.name)
+  ].filter(Boolean))).sort();
+
   const [newProductName, setNewProductName] = useState('');
   const [newCategory, setNewCategory] = useState('');
-  const [newBrand, setNewBrand] = useState('Generic');
+  const [newBrand, setNewBrand] = useState('');
   const [newPrice, setNewPrice] = useState('');
   const [newMrp, setNewMrp] = useState('');
   const [newImage, setNewImage] = useState('');
@@ -265,12 +272,10 @@ export function SellerProductsPage({ initialTab }: SellerProductsPageProps) {
                     onChange={(e) => setNewCategory(e.target.value)}
                     className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 outline-none font-medium"
                   >
-                    <option>Grocery</option>
-                    <option>Electronics</option>
-                    <option>Fashion</option>
-                    <option>Beauty & Health</option>
-                    <option>Home & Kitchen</option>
-                    <option>Beverages</option>
+                    <option value="">-- Select Category --</option>
+                    {allAvailableCategories.map((catName) => (
+                      <option key={catName} value={catName}>{catName}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -280,6 +285,7 @@ export function SellerProductsPage({ initialTab }: SellerProductsPageProps) {
                     onChange={(e) => setNewBrand(e.target.value)}
                     className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 outline-none font-medium cursor-pointer"
                   >
+                    <option value="">-- Select Brand --</option>
                     {liveBrands.filter(b => b.status === 'active').map(b => (
                       <option key={b.id} value={b.name}>{b.name}</option>
                     ))}

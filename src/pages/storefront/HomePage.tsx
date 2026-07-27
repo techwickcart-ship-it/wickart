@@ -165,7 +165,7 @@ export function HomePage({
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
-           {categories.slice(0, 12).map((cat, idx) => (
+           {categories.filter(cat => cat.status !== 'Inactive' && cat.status !== 'inactive').slice(0, 12).map((cat, idx) => (
              <div 
                key={cat.id || idx} 
                onClick={() => onNavigate('Products')}

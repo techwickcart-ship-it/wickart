@@ -8,6 +8,7 @@ export function SubCategoriesPage() {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const subcategories = useMarketplaceData('subcategories', () => marketplaceStore.getSubcategories());
   const categories = useMarketplaceData('categories', () => marketplaceStore.getCategories());
@@ -22,7 +23,7 @@ export function SubCategoriesPage() {
   const handleStartAdd = () => {
     setEditingId(null);
     setSubName('');
-    setParentCategory(categories[0]?.name || '');
+    setParentCategory('');
     setImageUrl('');
     setImagePreview(null);
     setStatus('Active');
@@ -72,6 +73,7 @@ export function SubCategoriesPage() {
         image: finalImage,
         status: status
       });
+      setToastMessage('Subcategory updated successfully!');
     } else {
       marketplaceStore.addSubcategory({
         name: subName.trim(),
@@ -80,6 +82,7 @@ export function SubCategoriesPage() {
         status: status,
         count: 0
       });
+      setToastMessage('Subcategory created successfully!');
     }
 
     // Reset Form
@@ -95,6 +98,7 @@ export function SubCategoriesPage() {
   const handleDeleteSubcategory = (id: string, name: string) => {
     if (window.confirm(`Are you sure you want to delete subcategory "${name}"?`)) {
       marketplaceStore.deleteSubcategory(id);
+      setToastMessage('Subcategory deleted successfully!');
     }
   };
 
@@ -146,11 +150,6 @@ export function SubCategoriesPage() {
                   {categories.map((c) => (
                     <option key={c.id} value={c.name}>{c.name}</option>
                   ))}
-                  <option value="Grocery">Grocery & Daily Essentials</option>
-                  <option value="Electronics">Electronics & Gadgets</option>
-                  <option value="Fashion">Fashion & Clothing</option>
-                  <option value="Home Appliance">Home Appliance</option>
-                  <option value="Jewellery">Jewellery & Accessories</option>
                 </select>
               </div>
 
@@ -257,6 +256,18 @@ export function SubCategoriesPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {toastMessage && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl flex items-center justify-between shadow-xs">
+          <div className="flex items-center gap-2 font-bold text-sm">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+            <span>{toastMessage}</span>
+          </div>
+          <button type="button" onClick={() => setToastMessage(null)} className="text-emerald-600 hover:text-emerald-800 font-bold cursor-pointer">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Sub Categories</h1>
@@ -320,11 +331,20 @@ export function SubCategoriesPage() {
                     </td>
                     <td className="px-6 py-4 font-semibold text-slate-700">{cat.count || 0} Products</td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${
-                        cat.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600 border border-slate-200'
-                      }`}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newStatus = cat.status === 'Active' ? 'Inactive' : 'Active';
+                          marketplaceStore.updateSubcategory(cat.id, { status: newStatus });
+                          setToastMessage(`Subcategory marked as ${newStatus}`);
+                        }}
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold cursor-pointer transition-transform active:scale-95 ${
+                          cat.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200'
+                        }`}
+                        title="Click to toggle status"
+                      >
                         {cat.status || 'Active'}
-                      </span>
+                      </button>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">

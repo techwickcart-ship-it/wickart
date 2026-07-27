@@ -79,7 +79,8 @@ export function ProductsPage({
   if (minRating > 0) activeFilterCount++;
   if (searchQuery.trim() !== '') activeFilterCount++;
 
-  const categories = ['All', ...Array.from(new Set([...storeCategories.map((c: any) => c.name), ...products.map((p: any) => p.category).filter(Boolean)]))];
+  const activeCategories = storeCategories.filter((c: any) => c.status !== 'Inactive' && c.status !== 'inactive');
+  const categories = ['All', ...Array.from(new Set([...activeCategories.map((c: any) => c.name), ...products.map((p: any) => p.category).filter(Boolean)]))];
 
   let filteredProducts = products.filter(product => {
     // Brand filter

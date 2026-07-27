@@ -337,13 +337,20 @@ export function CategoriesPage() {
 
               <h3 className="font-bold text-slate-900 text-sm line-clamp-1">{cat.name}</h3>
               <p className="text-xs font-semibold text-slate-500 mt-0.5">{cat.count || 0} Products</p>
-              {cat.status && (
-                <span className={`mt-2 px-2 py-0.5 text-[10px] font-bold rounded-full border ${
-                  cat.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'
-                }`}>
-                  {cat.status}
-                </span>
-              )}
+              <button
+                type="button"
+                onClick={() => {
+                  const newStatus = cat.status === 'Active' ? 'Inactive' : 'Active';
+                  marketplaceStore.updateCategory(cat.id, { status: newStatus });
+                  setToastMessage(`Category "${cat.name}" marked as ${newStatus}`);
+                }}
+                className={`mt-2 px-2.5 py-0.5 text-[10px] font-bold rounded-full border cursor-pointer transition-transform active:scale-95 ${
+                  cat.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                }`}
+                title="Click to toggle status"
+              >
+                {cat.status || 'Active'}
+              </button>
             </div>
           );
         })}

@@ -255,9 +255,9 @@ export const marketplaceStore = {
 
     return item;
   },
-  updateProduct(id: number, updatedFields: Partial<Product>): Product | null {
+  updateProduct(id: number | string, updatedFields: Partial<Product>): Product | null {
     const list = this.getProducts();
-    const index = list.findIndex(p => p.id === id);
+    const index = list.findIndex(p => String(p.id) === String(id));
     if (index !== -1) {
       list[index] = { ...list[index], ...updatedFields };
       this.saveProducts(list);
@@ -265,9 +265,9 @@ export const marketplaceStore = {
     }
     return null;
   },
-  deleteProduct(id: number): void {
+  deleteProduct(id: number | string): void {
     const list = this.getProducts();
-    const filtered = list.filter(p => p.id !== id);
+    const filtered = list.filter(p => String(p.id) !== String(id));
     this.saveProducts(filtered);
   },
   getOrders(): Order[] {
@@ -478,7 +478,7 @@ export const marketplaceStore = {
   },
   deleteDeliveryPartner(id: string): void {
     const list = this.getDeliveryPartners();
-    const updated = list.filter(item => item.id !== id);
+    const updated = list.filter(item => String(item.id) !== String(id));
     this.saveDeliveryPartners(updated);
 
     // Background sync deletion
@@ -747,12 +747,12 @@ export const marketplaceStore = {
   },
   deleteCategory(id: string): void {
     const list = this.getCategories();
-    const filtered = list.filter(c => c.id !== id);
+    const filtered = list.filter(c => String(c.id) !== String(id));
     this.saveCategories(filtered);
   },
   updateCategory(id: string, updatedFields: Partial<any>): any {
     const list = this.getCategories();
-    const index = list.findIndex(c => c.id === id);
+    const index = list.findIndex(c => String(c.id) === String(id));
     if (index !== -1) {
       list[index] = { ...list[index], ...updatedFields };
       this.saveCategories(list);
@@ -784,12 +784,12 @@ export const marketplaceStore = {
   },
   deleteSubcategory(id: string): void {
     const list = this.getSubcategories();
-    const filtered = list.filter(sc => sc.id !== id);
+    const filtered = list.filter(sc => String(sc.id) !== String(id));
     this.saveSubcategories(filtered);
   },
   updateSubcategory(id: string, updatedFields: Partial<any>): any {
     const list = this.getSubcategories();
-    const index = list.findIndex(sc => sc.id === id);
+    const index = list.findIndex(sc => String(sc.id) === String(id));
     if (index !== -1) {
       list[index] = { ...list[index], ...updatedFields };
       this.saveSubcategories(list);
@@ -1222,7 +1222,7 @@ export const marketplaceStore = {
   },
   updateBrand(id: string, updatedFields: Partial<Brand>): Brand | null {
     const list = this.getBrands();
-    const index = list.findIndex(b => b.id === id);
+    const index = list.findIndex(b => String(b.id) === String(id));
     if (index !== -1) {
       list[index] = { ...list[index], ...updatedFields };
       this.saveBrands(list);
@@ -1232,7 +1232,7 @@ export const marketplaceStore = {
   },
   deleteBrand(id: string): void {
     const list = this.getBrands();
-    const filtered = list.filter(b => b.id !== id);
+    const filtered = list.filter(b => String(b.id) !== String(id));
     this.saveBrands(filtered);
   },
 
@@ -1259,7 +1259,7 @@ export const marketplaceStore = {
   },
   updateTaxRule(id: string, updatedFields: Partial<TaxRule>): TaxRule | null {
     const list = this.getTaxRules();
-    const index = list.findIndex(t => t.id === id);
+    const index = list.findIndex(t => String(t.id) === String(id));
     if (index !== -1) {
       list[index] = { ...list[index], ...updatedFields };
       this.saveTaxRules(list);
@@ -1269,7 +1269,7 @@ export const marketplaceStore = {
   },
   deleteTaxRule(id: string): void {
     const list = this.getTaxRules();
-    const filtered = list.filter(t => t.id !== id);
+    const filtered = list.filter(t => String(t.id) !== String(id));
     this.saveTaxRules(filtered);
   },
   getTaxInclusive(): boolean {
@@ -1315,7 +1315,7 @@ export const marketplaceStore = {
   },
   updateWarehouse(id: string, updatedFields: Partial<Warehouse>): Warehouse | null {
     const list = this.getWarehouses();
-    const index = list.findIndex(w => w.id === id);
+    const index = list.findIndex(w => String(w.id) === String(id));
     if (index !== -1) {
       list[index] = { ...list[index], ...updatedFields };
       this.saveWarehouses(list);
@@ -1325,7 +1325,7 @@ export const marketplaceStore = {
   },
   deleteWarehouse(id: string): void {
     const list = this.getWarehouses();
-    const filtered = list.filter(w => w.id !== id);
+    const filtered = list.filter(w => String(w.id) !== String(id));
     this.saveWarehouses(filtered);
   },
 

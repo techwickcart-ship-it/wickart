@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase, getSupabaseCredentials } from './supabase';
 
 export interface Product {
   id: number;
@@ -495,7 +495,7 @@ export const marketplaceStore = {
       coupons: { status: 'Accessible' | 'Error' | 'Not Checked'; count?: number; error?: string };
     };
   }> {
-    const url = (import.meta as any).env?.VITE_SUPABASE_URL || 'https://jlxyisjrqebcmbsihjdb.supabase.co';
+    const { url } = getSupabaseCredentials();
     const result: {
       connected: boolean;
       url: string;
@@ -521,7 +521,9 @@ export const marketplaceStore = {
         .limit(1);
 
       if (dpError) {
-        result.tables.delivery_partners = { status: 'Error' as const, error: dpError.message };
+        const is401 = dpError.status === 401 || (dpError.message && (dpError.message.includes('401') || dpError.message.includes('apiKey') || dpError.message.includes('JWT') || dpError.message.includes('Unauthorized') || dpError.message.includes('JWSError')));
+        const errMsg = is401 ? '401 Unauthorized: Invalid API key or missing anon key' : dpError.message;
+        result.tables.delivery_partners = { status: 'Error' as const, error: errMsg };
       } else {
         result.connected = true;
         const { count } = await supabase.from('delivery_partners').select('*', { count: 'exact', head: true });
@@ -535,7 +537,9 @@ export const marketplaceStore = {
         .limit(1);
 
       if (cError) {
-        result.tables.coupons = { status: 'Error' as const, error: cError.message };
+        const is401 = cError.status === 401 || (cError.message && (cError.message.includes('401') || cError.message.includes('apiKey') || cError.message.includes('JWT') || cError.message.includes('Unauthorized') || cError.message.includes('JWSError')));
+        const errMsg = is401 ? '401 Unauthorized: Invalid API key or missing anon key' : cError.message;
+        result.tables.coupons = { status: 'Error' as const, error: errMsg };
       } else {
         result.connected = true;
         const { count } = await supabase.from('coupons').select('*', { count: 'exact', head: true });
@@ -555,7 +559,12 @@ export const marketplaceStore = {
         .select('*');
       
       if (error) {
-        console.warn('Supabase fetch delivery_partners error:', error.message);
+        const is401 = error.status === 401 || (error.message && (error.message.includes('401') || error.message.includes('Unauthorized') || error.message.includes('JWSError')));
+        if (is401) {
+          console.warn('Supabase fetch delivery_partners returned 401 Unauthorized. Using local cache.');
+        } else {
+          console.warn('Supabase fetch delivery_partners error:', error.message);
+        }
         return;
       }
 
@@ -643,7 +652,12 @@ export const marketplaceStore = {
         .select('*');
       
       if (error) {
-        console.warn('Supabase fetch coupons error:', error.message);
+        const is401 = error.status === 401 || (error.message && (error.message.includes('401') || error.message.includes('Unauthorized') || error.message.includes('JWSError')));
+        if (is401) {
+          console.warn('Supabase fetch coupons returned 401 Unauthorized. Using local cache.');
+        } else {
+          console.warn('Supabase fetch coupons error:', error.message);
+        }
         return;
       }
 

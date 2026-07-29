@@ -628,6 +628,7 @@ ALTER TABLE public.custom_website_sections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.promotional_banners ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.warehouses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.delivery_partners ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_tickets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_ticket_replies ENABLE ROW LEVEL SECURITY;
 
@@ -640,7 +641,7 @@ DECLARE
         'return_reasons', 'dispatch_manifests', 'referral_configs', 'tax_rules',
         'platform_settings', 'homepage_top_categories', 'homepage_sliders',
         'custom_website_sections', 'promotional_banners', 'warehouses', 'delivery_partners',
-        'support_tickets', 'support_ticket_replies'
+        'coupons', 'support_tickets', 'support_ticket_replies'
     ];
 BEGIN
     FOREACH tbl IN ARRAY tables LOOP

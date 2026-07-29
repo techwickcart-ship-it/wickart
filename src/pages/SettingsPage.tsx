@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
-import { Save, UploadCloud, Building2, Scale, Image as ImageIcon, Database, Check, AlertTriangle, RefreshCw, Play, Laptop, HelpCircle, Trash2, ShieldCheck, Lock, EyeOff, CheckCircle } from 'lucide-react';
+import { Save, UploadCloud, Building2, Scale, Image as ImageIcon, Database, Check, AlertTriangle, RefreshCw, Play, Laptop, HelpCircle, Trash2, ShieldCheck, Lock, EyeOff, CheckCircle, Key } from 'lucide-react';
 import { marketplaceStore } from '../lib/store';
+import { getSupabaseCredentials, reinitSupabaseClient } from '../lib/supabase';
 
 export function SettingsPage() {
   const [activeTab, setActiveTab] = useState('general');
@@ -30,6 +31,14 @@ export function SettingsPage() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
+  const [supabaseUrlInput, setSupabaseUrlInput] = useState(() => getSupabaseCredentials().url);
+  const [supabaseKeyInput, setSupabaseKeyInput] = useState(() => getSupabaseCredentials().anonKey);
+
+  const handleSaveCredentials = async () => {
+    reinitSupabaseClient(supabaseUrlInput.trim(), supabaseKeyInput.trim());
+    setStatusMessage('Supabase credentials saved. Re-testing connection...');
+    await handleTestConnection();
+  };
 
   useEffect(() => {
     setCompanyName(marketplaceStore.getCompanyName());
@@ -501,6 +510,52 @@ export function SettingsPage() {
                     </div>
                   )}
 
+                  {/* Credentials Form */}
+                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                      <Key className="w-4 h-4 text-blue-600" /> Supabase Credentials Configuration
+                    </h4>
+                    <p className="text-xs text-slate-500">
+                      If environment variables are unconfigured or returning 401 Unauthorized, enter your Supabase project URL and Anon Key below:
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                          VITE_SUPABASE_URL
+                        </label>
+                        <input
+                          type="text"
+                          value={supabaseUrlInput}
+                          onChange={(e) => setSupabaseUrlInput(e.target.value)}
+                          placeholder="https://your-project.supabase.co"
+                          className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500 font-mono text-slate-800"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                          VITE_SUPABASE_ANON_KEY (JWT)
+                        </label>
+                        <input
+                          type="password"
+                          value={supabaseKeyInput}
+                          onChange={(e) => setSupabaseKeyInput(e.target.value)}
+                          placeholder="eyJhbGciOiJIUzI1NiIsIn..."
+                          className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:border-blue-500 font-mono text-slate-800"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end pt-1">
+                      <button
+                        onClick={handleSaveCredentials}
+                        disabled={isTesting}
+                        className="px-3 py-1.5 bg-slate-900 hover:bg-black text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"
+                      >
+                        <Save className="w-3.5 h-3.5" />
+                        Save Credentials & Re-test
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Table Status Checkers */}
                   <div className="space-y-3">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Database Table Checks</h3>
@@ -524,7 +579,7 @@ export function SettingsPage() {
                         ) : dbStatus?.tables?.delivery_partners?.status === 'Error' ? (
                           <div className="flex flex-col items-end gap-1">
                             <span className="px-2 py-0.5 bg-red-50 text-red-600 border border-red-100 rounded text-xs font-bold">
-                              Table Not Found
+                              {dbStatus.tables.delivery_partners.error?.includes('401') || dbStatus.tables.delivery_partners.error?.includes('Unauthorized') ? '401 Unauthorized' : dbStatus.tables.delivery_partners.error?.includes('not found') ? 'Table Not Found' : 'Error'}
                             </span>
                             <span className="text-[10px] text-slate-400 max-w-[200px] text-right break-words font-mono">
                               {dbStatus.tables.delivery_partners.error}
@@ -555,7 +610,7 @@ export function SettingsPage() {
                         ) : dbStatus?.tables?.coupons?.status === 'Error' ? (
                           <div className="flex flex-col items-end gap-1">
                             <span className="px-2 py-0.5 bg-red-50 text-red-600 border border-red-100 rounded text-xs font-bold">
-                              Table Not Found
+                              {dbStatus.tables.coupons.error?.includes('401') || dbStatus.tables.coupons.error?.includes('Unauthorized') ? '401 Unauthorized' : dbStatus.tables.coupons.error?.includes('not found') ? 'Table Not Found' : 'Error'}
                             </span>
                             <span className="text-[10px] text-slate-400 max-w-[200px] text-right break-words font-mono">
                               {dbStatus.tables.coupons.error}

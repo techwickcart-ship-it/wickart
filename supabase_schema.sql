@@ -619,6 +619,40 @@ CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON public.support_tickets(
 CREATE INDEX IF NOT EXISTS idx_support_tickets_number ON public.support_tickets(ticket_number);
 CREATE INDEX IF NOT EXISTS idx_support_ticket_replies_ticket ON public.support_ticket_replies(ticket_id);
 
+-- ==============================================================================
+-- 17. COUPONS & PROMOTIONAL DISCOUNTS
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.coupons (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    code TEXT NOT NULL UNIQUE,
+    discount_type TEXT DEFAULT 'fixed',
+    discount_value NUMERIC(10, 2) NOT NULL DEFAULT 0,
+    min_order_amount NUMERIC(10, 2) NOT NULL DEFAULT 0,
+    status TEXT DEFAULT 'Active',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Migration check for existing coupons table
+DO $$
+BEGIN
+    ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS code TEXT;
+    ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS discount_type TEXT DEFAULT 'fixed';
+    ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS discount_value NUMERIC(10, 2) DEFAULT 0;
+    ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS min_order_amount NUMERIC(10, 2) DEFAULT 0;
+    ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'Active';
+END $$;
+
+-- Seed Initial Coupons
+INSERT INTO public.coupons (code, discount_type, discount_value, min_order_amount, status)
+VALUES 
+('WELCOME100', 'fixed', 100.00, 499.00, 'Active'),
+('FESTIVE20', 'percentage', 20.00, 999.00, 'Active'),
+('SULTANPUR50', 'fixed', 50.00, 299.00, 'Active')
+ON CONFLICT (code) DO NOTHING;
+
+CREATE INDEX IF NOT EXISTS idx_coupons_code ON public.coupons(code);
+
 -- Enable Row Level Security (RLS) on all public tables
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.vendors ENABLE ROW LEVEL SECURITY;
@@ -641,6 +675,7 @@ ALTER TABLE public.custom_website_sections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.promotional_banners ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.warehouses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.delivery_partners ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_tickets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_ticket_replies ENABLE ROW LEVEL SECURITY;
 
@@ -654,7 +689,7 @@ DECLARE
         'return_reasons', 'dispatch_manifests', 'referral_configs', 'tax_rules',
         'platform_settings', 'homepage_top_categories', 'homepage_sliders',
         'custom_website_sections', 'promotional_banners', 'warehouses', 'delivery_partners',
-        'support_tickets', 'support_ticket_replies'
+        'coupons', 'support_tickets', 'support_ticket_replies'
     ];
 BEGIN
     FOREACH tbl IN ARRAY tables LOOP

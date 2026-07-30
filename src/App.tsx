@@ -242,10 +242,13 @@ export default function App() {
 
     // Admin Authenticated View
     if (!isAdminAuthenticated) {
-      return <AdminLoginPage onLogin={() => {
-        sessionStorage.setItem('adminAuth', 'true');
-        setIsAdminAuthenticated(true);
-      }} />;
+      return <AdminLoginPage 
+        onLogin={() => {
+          sessionStorage.setItem('adminAuth', 'true');
+          setIsAdminAuthenticated(true);
+        }} 
+        onBack={() => navigateTo('/')} 
+      />;
     }
 
     const handleAdminLogout = () => {

@@ -145,7 +145,13 @@ export function Header({ isSeller = false, onSettingsClick, onMenuClick, onLogou
                           className="flex items-center justify-between p-1.5 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors"
                         >
                           <div className="flex items-center gap-2 truncate">
-                            <img src={p.image} alt={p.name} className="w-7 h-7 rounded object-cover border" />
+                            {p.image && p.image.trim() ? (
+                              <img src={p.image} alt={p.name} className="w-7 h-7 rounded object-cover border" />
+                            ) : (
+                              <div className="w-7 h-7 rounded bg-slate-100 flex items-center justify-center font-bold text-slate-500 text-[10px] border shrink-0">
+                                {p.name?.charAt(0)}
+                              </div>
+                            )}
                             <span className="font-bold text-slate-800 truncate">{p.name}</span>
                           </div>
                           <span className="font-bold text-slate-900">{p.price}</span>

@@ -172,7 +172,7 @@ export function HomePage({
                className="bg-slate-50 p-2.5 sm:p-4 rounded-2xl flex flex-col items-center text-center cursor-pointer hover:scale-105 hover:bg-blue-50/60 transition-all duration-300 border border-slate-200/60 hover:border-blue-200 hover:shadow-md group"
              >
                 <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl overflow-hidden bg-white mb-2 sm:mb-3 shadow-2xs group-hover:shadow-md transition-shadow p-1 border border-slate-100 shrink-0">
-                   {cat.image ? (
+                   {cat.image && cat.image.trim() ? (
                      <img src={cat.image} alt={cat.name} className="w-full h-full object-cover rounded-xl" />
                    ) : (
                      <div className="w-full h-full bg-blue-100 flex items-center justify-center font-bold text-blue-700 text-sm sm:text-base rounded-xl">
@@ -207,7 +207,11 @@ export function HomePage({
               className="bg-white p-3 sm:p-4 rounded-2xl flex flex-col items-center text-center cursor-pointer hover:border-blue-500 hover:shadow-lg transition-all duration-300 border border-slate-200 group"
             >
               <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl border border-slate-100 overflow-hidden bg-slate-50 flex items-center justify-center p-2 mb-1.5 sm:mb-2 group-hover:scale-105 transition-transform">
-                <img src={brand.logo} alt={brand.name} className="max-w-full max-h-full object-contain" />
+                {brand.logo && brand.logo.trim() ? (
+                  <img src={brand.logo} alt={brand.name} className="max-w-full max-h-full object-contain" />
+                ) : (
+                  <span className="font-bold text-slate-400 text-xs sm:text-sm">{brand.name.charAt(0)}</span>
+                )}
               </div>
               <h3 className="font-bold text-slate-900 text-xs sm:text-sm group-hover:text-blue-600 transition-colors">{brand.name}</h3>
               <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Verified Brand</span>

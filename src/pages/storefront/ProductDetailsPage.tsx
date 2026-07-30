@@ -115,7 +115,11 @@ export function ProductDetailsPage({
            {/* Image Gallery */}
            <div className="space-y-4">
               <div className="bg-white rounded-3xl p-8 border border-slate-100 flex items-center justify-center aspect-square shadow-sm relative group overflow-hidden">
-                 <img src={activeMainImage} alt={product.name} className="max-w-full max-h-full object-contain hover:scale-105 transition-transform duration-300" />
+                 {activeMainImage && activeMainImage.trim() ? (
+                    <img src={activeMainImage} alt={product.name} className="max-w-full max-h-full object-contain hover:scale-105 transition-transform duration-300" />
+                 ) : (
+                    <div className="text-slate-300 font-bold text-4xl">{product.name?.charAt(0)}</div>
+                 )}
                  
                  {/* Wishlist & Compare floating buttons */}
                  <div className="absolute top-4 right-4 flex gap-2">
@@ -150,7 +154,11 @@ export function ProductDetailsPage({
                         activeMainImage === imgUrl ? 'border-blue-600 ring-2 ring-blue-500/20 shadow-xs' : 'border-slate-100 hover:border-slate-300'
                       } transition-all`}
                     >
-                       <img src={imgUrl} alt={`${product.name} thumbnail ${idx + 1}`} className="w-full h-full object-contain" />
+                       {imgUrl && imgUrl.trim() ? (
+                          <img src={imgUrl} alt={`${product.name} thumbnail ${idx + 1}`} className="w-full h-full object-contain" />
+                       ) : (
+                          <div className="w-full h-full flex items-center justify-center font-bold text-slate-300 text-xs">#{idx + 1}</div>
+                       )}
                     </div>
                  ))}
               </div>

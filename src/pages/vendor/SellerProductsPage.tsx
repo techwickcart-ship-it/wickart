@@ -199,8 +199,12 @@ export function SellerProductsPage({ initialTab }: SellerProductsPageProps) {
                       <tr key={prod.id} className="hover:bg-slate-50/40 transition-colors">
                          <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
-                               <div className="w-12 h-12 bg-slate-100 rounded-lg overflow-hidden shrink-0 border border-slate-200">
-                                  <img src={prod.image} alt={prod.name} className="w-full h-full object-cover" />
+                               <div className="w-12 h-12 bg-slate-100 rounded-lg overflow-hidden shrink-0 border border-slate-200 flex items-center justify-center">
+                                  {prod.image && prod.image.trim() ? (
+                                     <img src={prod.image} alt={prod.name} className="w-full h-full object-cover" />
+                                  ) : (
+                                     <span className="font-bold text-slate-400 text-xs">{prod.name?.charAt(0)}</span>
+                                  )}
                                </div>
                                <div>
                                   <p className="font-bold text-slate-900">{prod.name}</p>

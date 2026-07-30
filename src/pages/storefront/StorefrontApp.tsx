@@ -9,7 +9,7 @@ import { PolicyPage } from './PolicyPage';
 import { ProductDetailsPage } from './ProductDetailsPage';
 import { StoreHeader } from './StoreHeader';
 import { StoreFooter } from './StoreFooter';
-import { CheckCircle2, X, Heart, Repeat, ShoppingCart, Star, Trash2, ArrowRight } from 'lucide-react';
+import { CheckCircle2, X, Heart, Repeat, ShoppingCart, Star, Trash2, ArrowRight, Package } from 'lucide-react';
 import { getStoredCart, saveStoredCart, parsePriceNumber, CartItem } from '../../lib/cartStore';
 import { marketplaceStore } from '../../lib/store';
 
@@ -410,7 +410,13 @@ export function StorefrontApp() {
                 ) : (
                   wishlistItems.map((prod) => (
                     <div key={prod.id} className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100 group">
-                      <img src={prod.image} alt={prod.name} className="w-16 h-16 object-cover rounded-xl bg-white border border-slate-100 cursor-pointer" onClick={() => { setShowWishlistModal(false); handleViewProduct(prod); }} />
+                      {prod.image && prod.image.trim() ? (
+                        <img src={prod.image} alt={prod.name} className="w-16 h-16 object-cover rounded-xl bg-white border border-slate-100 cursor-pointer" onClick={() => { setShowWishlistModal(false); handleViewProduct(prod); }} />
+                      ) : (
+                        <div className="w-16 h-16 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-slate-400 text-xs shrink-0 cursor-pointer" onClick={() => { setShowWishlistModal(false); handleViewProduct(prod); }}>
+                          {prod.name?.charAt(0)}
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0">
                         <h4 className="font-bold text-slate-900 text-xs sm:text-sm truncate cursor-pointer hover:text-blue-600" onClick={() => { setShowWishlistModal(false); handleViewProduct(prod); }}>{prod.name}</h4>
                         <p className="text-xs font-bold text-rose-600">{prod.price}</p>
@@ -496,8 +502,12 @@ export function StorefrontApp() {
                       </button>
 
                       <div>
-                        <div className="w-full aspect-square bg-white rounded-xl p-2 mb-3 border border-slate-100 overflow-hidden">
-                          <img src={prod.image} alt={prod.name} className="w-full h-full object-contain cursor-pointer" onClick={() => { setShowCompareModal(false); handleViewProduct(prod); }} />
+                        <div className="w-full aspect-square bg-white rounded-xl p-2 mb-3 border border-slate-100 overflow-hidden flex items-center justify-center">
+                          {prod.image && prod.image.trim() ? (
+                            <img src={prod.image} alt={prod.name} className="w-full h-full object-contain cursor-pointer" onClick={() => { setShowCompareModal(false); handleViewProduct(prod); }} />
+                          ) : (
+                            <Package className="w-10 h-10 text-slate-300 cursor-pointer" onClick={() => { setShowCompareModal(false); handleViewProduct(prod); }} />
+                          )}
                         </div>
                         <h4 className="font-bold text-slate-900 text-sm mb-1 line-clamp-2 cursor-pointer hover:text-blue-600" onClick={() => { setShowCompareModal(false); handleViewProduct(prod); }}>{prod.name}</h4>
                         <div className="flex items-baseline gap-2 mb-3">
@@ -548,7 +558,11 @@ export function StorefrontApp() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="bg-slate-50 rounded-2xl p-4 flex items-center justify-center aspect-square border border-slate-100">
-                <img src={quickViewProduct.image} alt={quickViewProduct.name} className="max-w-full max-h-full object-contain" />
+                {quickViewProduct.image && quickViewProduct.image.trim() ? (
+                  <img src={quickViewProduct.image} alt={quickViewProduct.name} className="max-w-full max-h-full object-contain" />
+                ) : (
+                  <Package className="w-12 h-12 text-slate-300" />
+                )}
               </div>
 
               <div className="flex flex-col justify-between">

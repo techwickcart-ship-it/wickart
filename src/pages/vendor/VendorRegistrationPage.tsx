@@ -364,7 +364,7 @@ export function VendorRegistrationPage() {
               <div className="grid grid-cols-2 gap-4 pt-2">
                 <label className="border border-dashed border-slate-300 rounded-xl p-4 flex flex-col items-center justify-center bg-slate-50 hover:bg-slate-100/80 cursor-pointer transition-colors relative">
                   <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleLogoUpload(e.target.files[0])} className="hidden" />
-                  {storeLogo ? (
+                  {storeLogo && storeLogo.trim() ? (
                     <div className="flex flex-col items-center gap-1">
                       <img src={storeLogo} alt="Logo Preview" className="w-12 h-12 rounded-lg object-cover border" />
                       <span className="text-[10px] font-bold text-emerald-600">Logo Uploaded ✓ (Click to change)</span>
@@ -380,7 +380,7 @@ export function VendorRegistrationPage() {
 
                 <label className="border border-dashed border-slate-300 rounded-xl p-4 flex flex-col items-center justify-center bg-slate-50 hover:bg-slate-100/80 cursor-pointer transition-colors relative">
                   <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleBannerUpload(e.target.files[0])} className="hidden" />
-                  {storeBanner ? (
+                  {storeBanner && storeBanner.trim() ? (
                     <div className="flex flex-col items-center gap-1">
                       <img src={storeBanner} alt="Banner Preview" className="w-20 h-10 rounded-lg object-cover border" />
                       <span className="text-[10px] font-bold text-emerald-600">Banner Uploaded ✓ (Click to change)</span>

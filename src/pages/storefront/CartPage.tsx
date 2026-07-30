@@ -70,8 +70,12 @@ export function CartPage({
               <div className="space-y-4 mb-6">
                 {cartItems.map((item) => (
                   <div key={item.id} className="bg-[#dde4df] rounded-3xl p-4 flex gap-4 items-center">
-                     <div className="w-20 h-20 rounded-2xl overflow-hidden bg-white shrink-0 shadow-xs">
-                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                     <div className="w-20 h-20 rounded-2xl overflow-hidden bg-white shrink-0 shadow-xs flex items-center justify-center">
+                        {item.image && item.image.trim() ? (
+                           <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                        ) : (
+                           <span className="font-bold text-slate-400 text-sm">{item.name?.charAt(0)}</span>
+                        )}
                      </div>
                      <div className="flex-1 min-w-0">
                         <h3 className="font-bold text-[#1f2937] text-base sm:text-lg mb-0.5 truncate">{item.name}</h3>

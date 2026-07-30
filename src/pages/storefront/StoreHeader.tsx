@@ -303,11 +303,17 @@ export function StoreHeader({
                             }}
                             className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer group"
                           >
-                            <img 
-                              src={prod.image} 
-                              alt={prod.name} 
-                              className="w-10 h-10 object-cover rounded-lg border border-slate-200 shrink-0" 
-                            />
+                            {prod.image && prod.image.trim() ? (
+                              <img 
+                                src={prod.image} 
+                                alt={prod.name} 
+                                className="w-10 h-10 object-cover rounded-lg border border-slate-200 shrink-0" 
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center font-bold text-slate-400 text-xs shrink-0 border border-slate-200">
+                                {prod.name?.charAt(0)}
+                              </div>
+                            )}
                             <div className="flex-1 min-w-0">
                               <h4 className="text-xs font-bold text-slate-800 group-hover:text-blue-600 truncate transition-colors">
                                 {prod.name}

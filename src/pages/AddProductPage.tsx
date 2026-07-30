@@ -996,7 +996,11 @@ export function AddProductPage({ onNavigate }: AddProductPageProps) {
               <div className="grid grid-cols-2 gap-3">
                 {mediaList.map((url, index) => (
                   <div key={index} className="relative group rounded-xl border-2 border-slate-200 overflow-hidden bg-slate-100 aspect-square flex items-center justify-center p-2 shadow-2xs">
-                    <img src={url} alt={`Media ${index + 1}`} className="w-full h-full object-contain" />
+                    {url && url.trim() ? (
+                      <img src={url} alt={`Media ${index + 1}`} className="w-full h-full object-contain" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-400 font-bold text-xs">No Image</div>
+                    )}
                     
                     {/* Badge */}
                     <div className="absolute top-1.5 left-1.5 bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded-md">

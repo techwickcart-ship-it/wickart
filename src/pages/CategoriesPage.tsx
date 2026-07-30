@@ -148,10 +148,10 @@ export function CategoriesPage() {
                 <label className="block text-sm font-bold text-slate-700 mb-1">Category Image</label>
                 
                 {/* Image Preview Box */}
-                {(imagePreview || imageUrl) && (
+                {Boolean((imagePreview || imageUrl)?.trim()) && (
                   <div className="mb-3 p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-4">
                     <img 
-                      src={imagePreview || imageUrl} 
+                      src={(imagePreview || imageUrl)!} 
                       alt="Category Preview" 
                       className="w-16 h-16 object-cover rounded-lg border border-slate-300 shadow-2xs shrink-0" 
                     />
@@ -328,7 +328,7 @@ export function CategoriesPage() {
 
               {/* Category Image or Icon */}
               <div className="w-20 h-20 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-center mb-3 overflow-hidden group-hover:scale-105 transition-all duration-300 shadow-2xs p-1">
-                {cat.image ? (
+                {cat.image && cat.image.trim() ? (
                   <img src={cat.image} alt={cat.name} className="w-full h-full object-cover rounded-xl" />
                 ) : (
                   <Icon className="w-8 h-8 text-slate-400 group-hover:text-blue-600 transition-colors" />

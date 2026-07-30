@@ -46,7 +46,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     <div className="group bg-white rounded-2xl border border-slate-100 overflow-hidden hover:border-blue-200 hover:shadow-xl hover:shadow-blue-900/5 transition-all duration-300 relative flex flex-col justify-between">
       <div>
         <div className="relative aspect-square overflow-hidden bg-slate-50 flex items-center justify-center">
-          {product.image ? (
+          {product.image && product.image.trim() ? (
             <img 
               src={product.image} 
               alt={product.name} 

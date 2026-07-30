@@ -50,7 +50,7 @@ export function AllProductsPage({ onNavigate }: AllProductsPageProps) {
     return matchesSearch && matchesCategory && matchesVendor;
   });
 
-  const handleDeleteProduct = (id: number, name: string) => {
+  const handleDeleteProduct = (id: number | string, name: string) => {
     if (confirm(`Are you sure you want to delete "${name}" from the product catalog?`)) {
       marketplaceStore.deleteProduct(id);
       setDeleteSuccess(`Product "${name}" deleted successfully.`);
@@ -226,7 +226,11 @@ export function AllProductsPage({ onNavigate }: AllProductsPageProps) {
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-xl border border-slate-200 overflow-hidden bg-slate-50 shrink-0 flex items-center justify-center p-1">
-                          <img src={product.image} alt={product.name} className="max-w-full max-h-full object-contain" />
+                          {product.image && product.image.trim() ? (
+                            <img src={product.image} alt={product.name} className="max-w-full max-h-full object-contain" />
+                          ) : (
+                            <Package className="w-5 h-5 text-slate-300" />
+                          )}
                         </div>
                         <div>
                           <p className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{product.name}</p>
@@ -325,7 +329,11 @@ export function AllProductsPage({ onNavigate }: AllProductsPageProps) {
           {filteredProducts.map((product) => (
             <Card key={product.id} className="overflow-hidden hover:border-blue-200 transition-all group">
               <div className="aspect-square bg-slate-50 border-b border-slate-100 relative p-4 flex items-center justify-center">
-                <img src={product.image} alt={product.name} className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform" />
+                {product.image && product.image.trim() ? (
+                  <img src={product.image} alt={product.name} className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform" />
+                ) : (
+                  <Package className="w-10 h-10 text-slate-300" />
+                )}
                 <span className="absolute top-3 left-3 px-2 py-0.5 bg-slate-900 text-white text-[10px] font-bold rounded">
                   {product.category || 'General'}
                 </span>

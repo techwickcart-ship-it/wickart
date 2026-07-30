@@ -181,6 +181,25 @@ const INITIAL_TXNS: any[] = [];
 const INITIAL_WALLET_TXNS: any[] = [];
 
 // Load helper
+export function isAuthOrApiKeyError(error: any): boolean {
+  if (!error) return false;
+  const msg = typeof error === 'string' ? error : (error.message || error.details || error.hint || String(error));
+  const status = error.status || error.code;
+  const lower = msg.toLowerCase();
+  return (
+    status === 401 ||
+    status === 403 ||
+    status === 'PGRST301' ||
+    lower.includes('401') ||
+    lower.includes('invalid api key') ||
+    lower.includes('unauthorized') ||
+    lower.includes('jwserror') ||
+    lower.includes('apikey') ||
+    lower.includes('jwt') ||
+    lower.includes('failed to fetch')
+  );
+}
+
 function getStored<T>(key: string, fallback: T): T {
   try {
     const val = localStorage.getItem(key);
@@ -425,6 +444,9 @@ export const marketplaceStore = {
     };
     list.unshift(item);
     this.saveSellers(list);
+    this.saveVendorToSupabase(item).catch(err => {
+      if (!isAuthOrApiKeyError(err)) console.warn('Vendor bg save error:', err);
+    });
     return item;
   },
 
@@ -532,7 +554,7 @@ export const marketplaceStore = {
         .limit(1);
 
       if (dpError) {
-        const is401 = dpError.status === 401 || (dpError.message && (dpError.message.includes('401') || dpError.message.includes('apiKey') || dpError.message.includes('JWT') || dpError.message.includes('Unauthorized') || dpError.message.includes('JWSError')));
+        const is401 = isAuthOrApiKeyError(dpError);
         const errMsg = is401 ? '401 Unauthorized: Invalid API key or missing anon key' : dpError.message;
         result.tables.delivery_partners = { status: 'Error' as const, error: errMsg };
       } else {
@@ -548,7 +570,7 @@ export const marketplaceStore = {
         .limit(1);
 
       if (cError) {
-        const is401 = cError.status === 401 || (cError.message && (cError.message.includes('401') || cError.message.includes('apiKey') || cError.message.includes('JWT') || cError.message.includes('Unauthorized') || cError.message.includes('JWSError')));
+        const is401 = isAuthOrApiKeyError(cError);
         const errMsg = is401 ? '401 Unauthorized: Invalid API key or missing anon key' : cError.message;
         result.tables.coupons = { status: 'Error' as const, error: errMsg };
       } else {
@@ -570,10 +592,7 @@ export const marketplaceStore = {
         .select('*');
       
       if (error) {
-        const is401 = error.status === 401 || (error.message && (error.message.includes('401') || error.message.includes('Unauthorized') || error.message.includes('JWSError')));
-        if (is401) {
-          console.warn('Supabase fetch delivery_partners returned 401 Unauthorized. Using local cache.');
-        } else {
+        if (!isAuthOrApiKeyError(error)) {
           console.warn('Supabase fetch delivery_partners error:', error.message);
         }
         return;
@@ -596,7 +615,7 @@ export const marketplaceStore = {
         setStored('deliveryPartners', mapped);
       }
     } catch (err) {
-      console.error('Failed to sync delivery partners from Supabase:', err);
+      if (!isAuthOrApiKeyError(err)) console.error('Failed to sync delivery partners from Supabase:', err);
     }
   },
 
@@ -626,7 +645,7 @@ export const marketplaceStore = {
         .select();
 
       if (error) {
-        console.error('Supabase save delivery_partners error:', error.message);
+        if (!isAuthOrApiKeyError(error)) console.error('Supabase save delivery_partners error:', error.message);
       } else if (data && data[0] && !isUUID) {
         const realId = data[0].id;
         const currentList = this.getDeliveryPartners();
@@ -634,7 +653,7 @@ export const marketplaceStore = {
         this.saveDeliveryPartners(updated);
       }
     } catch (err) {
-      console.error('Failed to save delivery partner to Supabase:', err);
+      if (!isAuthOrApiKeyError(err)) console.error('Failed to save delivery partner to Supabase:', err);
     }
   },
 
@@ -649,10 +668,10 @@ export const marketplaceStore = {
         .eq('id', id);
 
       if (error) {
-        console.error('Supabase delete delivery_partners error:', error.message);
+        if (!isAuthOrApiKeyError(error)) console.error('Supabase delete delivery_partners error:', error.message);
       }
     } catch (err) {
-      console.error('Failed to delete delivery partner from Supabase:', err);
+      if (!isAuthOrApiKeyError(err)) console.error('Failed to delete delivery partner from Supabase:', err);
     }
   },
 
@@ -663,10 +682,7 @@ export const marketplaceStore = {
         .select('*');
       
       if (error) {
-        const is401 = error.status === 401 || (error.message && (error.message.includes('401') || error.message.includes('Unauthorized') || error.message.includes('JWSError')));
-        if (is401) {
-          console.warn('Supabase fetch coupons returned 401 Unauthorized. Using local cache.');
-        } else {
+        if (!isAuthOrApiKeyError(error)) {
           console.warn('Supabase fetch coupons error:', error.message);
         }
         return;
@@ -684,7 +700,7 @@ export const marketplaceStore = {
         setStored('coupons', mapped);
       }
     } catch (err) {
-      console.error('Failed to sync coupons from Supabase:', err);
+      if (!isAuthOrApiKeyError(err)) console.error('Failed to sync coupons from Supabase:', err);
     }
   },
 
@@ -709,7 +725,7 @@ export const marketplaceStore = {
         .select();
 
       if (error) {
-        console.error('Supabase save coupons error:', error.message);
+        if (!isAuthOrApiKeyError(error)) console.error('Supabase save coupons error:', error.message);
       } else if (data && data[0] && !isUUID) {
         const realId = data[0].id;
         const currentList = this.getCoupons();
@@ -717,7 +733,7 @@ export const marketplaceStore = {
         this.saveCoupons(updated);
       }
     } catch (err) {
-      console.error('Failed to save coupon to Supabase:', err);
+      if (!isAuthOrApiKeyError(err)) console.error('Failed to save coupon to Supabase:', err);
     }
   },
 
@@ -730,10 +746,7 @@ export const marketplaceStore = {
         .order('created_at', { ascending: false });
       
       if (error) {
-        const is401 = error.status === 401 || (error.message && (error.message.includes('401') || error.message.includes('Unauthorized') || error.message.includes('JWSError')));
-        if (is401) {
-          console.warn('Supabase fetch products returned 401 Unauthorized. Using local cache.');
-        } else {
+        if (!isAuthOrApiKeyError(error)) {
           console.warn('Supabase fetch products error:', error.message);
         }
         return;
@@ -775,7 +788,7 @@ export const marketplaceStore = {
         setStored('products', mapped);
       }
     } catch (err) {
-      console.error('Failed to sync products from Supabase:', err);
+      if (!isAuthOrApiKeyError(err)) console.error('Failed to sync products from Supabase:', err);
     }
   },
 
@@ -817,7 +830,7 @@ export const marketplaceStore = {
         .select();
 
       if (error) {
-        console.error('Supabase save product error:', error.message);
+        if (!isAuthOrApiKeyError(error)) console.error('Supabase save product error:', error.message);
       } else if (data && data[0] && !isUUID) {
         const realId = data[0].id;
         const currentList = this.getProducts();
@@ -825,7 +838,7 @@ export const marketplaceStore = {
         this.saveProducts(updated);
       }
     } catch (err) {
-      console.error('Failed to save product to Supabase:', err);
+      if (!isAuthOrApiKeyError(err)) console.error('Failed to save product to Supabase:', err);
     }
   },
 
@@ -850,7 +863,10 @@ export const marketplaceStore = {
   async syncCategoriesFromSupabase(): Promise<void> {
     try {
       const { data, error } = await supabase.from('categories').select('*');
-      if (error) return;
+      if (error) {
+        if (!isAuthOrApiKeyError(error)) console.warn('Supabase fetch categories error:', error.message);
+        return;
+      }
       if (data && data.length > 0) {
         const mapped = data.map((c: any) => ({
           id: c.id,
@@ -862,7 +878,7 @@ export const marketplaceStore = {
         setStored('categories', mapped);
       }
     } catch (err) {
-      console.error('Failed to sync categories from Supabase:', err);
+      if (!isAuthOrApiKeyError(err)) console.error('Failed to sync categories from Supabase:', err);
     }
   },
 
@@ -880,7 +896,7 @@ export const marketplaceStore = {
       const onConflictTarget = isUUID ? 'id' : 'name';
       const { data, error } = await supabase.from('categories').upsert(payload, { onConflict: onConflictTarget }).select();
       if (error) {
-        console.error('Supabase save category error:', error.message, error);
+        if (!isAuthOrApiKeyError(error)) console.error('Supabase save category error:', error.message);
       } else if (data && data[0]) {
         const realId = data[0].id;
         const currentList = this.getCategories();
@@ -893,7 +909,7 @@ export const marketplaceStore = {
         this.dispatchAllEvents();
       }
     } catch (err) {
-      console.error('Failed to save category to Supabase:', err);
+      if (!isAuthOrApiKeyError(err)) console.error('Failed to save category to Supabase:', err);
     }
   },
 
@@ -901,16 +917,20 @@ export const marketplaceStore = {
     try {
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
       if (!isUUID) return;
-      await supabase.from('categories').delete().eq('id', id);
+      const { error } = await supabase.from('categories').delete().eq('id', id);
+      if (error && !isAuthOrApiKeyError(error)) console.error('Supabase delete category error:', error.message);
     } catch (err) {
-      console.error('Failed to delete category from Supabase:', err);
+      if (!isAuthOrApiKeyError(err)) console.error('Failed to delete category from Supabase:', err);
     }
   },
 
   async syncBrandsFromSupabase(): Promise<void> {
     try {
       const { data, error } = await supabase.from('brands').select('*');
-      if (error) return;
+      if (error) {
+        if (!isAuthOrApiKeyError(error)) console.warn('Supabase fetch brands error:', error.message);
+        return;
+      }
       if (data && data.length > 0) {
         const mapped: Brand[] = data.map((b: any) => ({
           id: b.id,
@@ -921,7 +941,7 @@ export const marketplaceStore = {
         setStored('brands', mapped);
       }
     } catch (err) {
-      console.error('Failed to sync brands from Supabase:', err);
+      if (!isAuthOrApiKeyError(err)) console.error('Failed to sync brands from Supabase:', err);
     }
   },
 
@@ -939,7 +959,7 @@ export const marketplaceStore = {
       const onConflictTarget = isUUID ? 'id' : 'name';
       const { data, error } = await supabase.from('brands').upsert(payload, { onConflict: onConflictTarget }).select();
       if (error) {
-        console.error('Supabase save brand error:', error.message, error);
+        if (!isAuthOrApiKeyError(error)) console.error('Supabase save brand error:', error.message);
       } else if (data && data[0]) {
         const realId = data[0].id;
         const currentList = this.getBrands();
@@ -952,7 +972,7 @@ export const marketplaceStore = {
         this.dispatchAllEvents();
       }
     } catch (err) {
-      console.error('Failed to save brand to Supabase:', err);
+      if (!isAuthOrApiKeyError(err)) console.error('Failed to save brand to Supabase:', err);
     }
   },
 
@@ -960,16 +980,20 @@ export const marketplaceStore = {
     try {
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
       if (!isUUID) return;
-      await supabase.from('brands').delete().eq('id', id);
+      const { error } = await supabase.from('brands').delete().eq('id', id);
+      if (error && !isAuthOrApiKeyError(error)) console.error('Supabase delete brand error:', error.message);
     } catch (err) {
-      console.error('Failed to delete brand from Supabase:', err);
+      if (!isAuthOrApiKeyError(err)) console.error('Failed to delete brand from Supabase:', err);
     }
   },
 
   async syncVendorsFromSupabase(): Promise<void> {
     try {
       const { data, error } = await supabase.from('vendors').select('*');
-      if (error) return;
+      if (error) {
+        if (!isAuthOrApiKeyError(error)) console.warn('Supabase fetch vendors error:', error.message);
+        return;
+      }
       if (data && data.length > 0) {
         const mapped: Seller[] = data.map((v: any) => ({
           id: v.id,
@@ -990,7 +1014,7 @@ export const marketplaceStore = {
         setStored('sellers', mapped);
       }
     } catch (err) {
-      console.error('Failed to sync vendors from Supabase:', err);
+      if (!isAuthOrApiKeyError(err)) console.error('Failed to sync vendors from Supabase:', err);
     }
   },
 
@@ -1024,21 +1048,26 @@ export const marketplaceStore = {
       }
 
       const { data, error } = await supabase.from('vendors').upsert(payload, { onConflict: isUUID ? 'id' : undefined }).select();
-      if (!error && data && data[0] && !isUUID) {
+      if (error) {
+        if (!isAuthOrApiKeyError(error)) console.error('Supabase save vendor error:', error.message);
+      } else if (data && data[0] && !isUUID) {
         const realId = data[0].id;
         const currentList = this.getSellers();
         const updated = currentList.map(s => String(s.id) === String(seller.id) ? { ...s, id: realId } : s);
         this.saveSellers(updated);
       }
     } catch (err) {
-      console.error('Failed to save vendor to Supabase:', err);
+      if (!isAuthOrApiKeyError(err)) console.error('Failed to save vendor to Supabase:', err);
     }
   },
 
   async syncOrdersFromSupabase(): Promise<void> {
     try {
       const { data, error } = await supabase.from('pos_orders').select('*').order('created_at', { ascending: false });
-      if (error) return;
+      if (error) {
+        if (!isAuthOrApiKeyError(error)) console.warn('Supabase fetch orders error:', error.message);
+        return;
+      }
       if (data && data.length > 0) {
         const mapped: Order[] = data.map((o: any) => ({
           id: o.order_number || o.id,
@@ -1054,7 +1083,7 @@ export const marketplaceStore = {
         setStored('orders', mapped);
       }
     } catch (err) {
-      console.error('Failed to sync orders from Supabase:', err);
+      if (!isAuthOrApiKeyError(err)) console.error('Failed to sync orders from Supabase:', err);
     }
   },
 
@@ -1075,11 +1104,11 @@ export const marketplaceStore = {
       };
 
       const { error } = await supabase.from('pos_orders').upsert(payload, { onConflict: 'order_number' });
-      if (error) {
+      if (error && !isAuthOrApiKeyError(error)) {
         console.error('Supabase save order error:', error.message);
       }
     } catch (err) {
-      console.error('Failed to save order to Supabase:', err);
+      if (!isAuthOrApiKeyError(err)) console.error('Failed to save order to Supabase:', err);
     }
   },
 
@@ -1630,6 +1659,9 @@ export const marketplaceStore = {
     };
     list.unshift(item);
     this.saveBrands(list);
+    this.saveBrandToSupabase(item).catch(err => {
+      if (!isAuthOrApiKeyError(err)) console.warn('Brand bg save error:', err);
+    });
     return item;
   },
   updateBrand(id: string, updatedFields: Partial<Brand>): Brand | null {
@@ -1638,6 +1670,9 @@ export const marketplaceStore = {
     if (index !== -1) {
       list[index] = { ...list[index], ...updatedFields };
       this.saveBrands(list);
+      this.saveBrandToSupabase(list[index]).catch(err => {
+        if (!isAuthOrApiKeyError(err)) console.warn('Brand bg update error:', err);
+      });
       return list[index];
     }
     return null;
@@ -1646,6 +1681,9 @@ export const marketplaceStore = {
     const list = this.getBrands();
     const filtered = list.filter(b => String(b.id) !== String(id));
     this.saveBrands(filtered);
+    this.deleteBrandFromSupabase(id).catch(err => {
+      if (!isAuthOrApiKeyError(err)) console.warn('Brand bg delete error:', err);
+    });
   },
 
   // TAX RULES

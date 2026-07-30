@@ -158,10 +158,10 @@ export function SubCategoriesPage() {
                 <label className="block text-sm font-bold text-slate-700 mb-1">Sub Category Image</label>
                 
                 {/* Preview Box */}
-                {(imagePreview || imageUrl) && (
+                {Boolean((imagePreview || imageUrl)?.trim()) && (
                   <div className="mb-3 p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-4">
                     <img 
-                      src={imagePreview || imageUrl} 
+                      src={(imagePreview || imageUrl)!} 
                       alt="Subcategory Preview" 
                       className="w-16 h-16 object-cover rounded-lg border border-slate-300 shadow-2xs shrink-0" 
                     />
@@ -314,7 +314,7 @@ export function SubCategoriesPage() {
                   <tr key={cat.id} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-6 py-4 font-bold text-slate-900">
                       <div className="flex items-center gap-3">
-                        {cat.image ? (
+                        {cat.image && cat.image.trim() ? (
                           <img src={cat.image} alt={cat.name} className="w-10 h-10 object-cover rounded-xl border border-slate-200 shadow-2xs shrink-0" />
                         ) : (
                           <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center font-bold text-slate-500 text-xs shrink-0">

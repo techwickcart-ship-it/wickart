@@ -22,7 +22,8 @@ export function SellerInventoryPage() {
   const inventoryItems = sellerProducts.map(p => {
     // Generate stock or retrieve from local state override
     const override = stockUpdates[String(p.id)];
-    const stock = override !== undefined ? override : (p.id % 4 === 0 ? 0 : p.id % 3 === 0 ? 6 : 15 + (p.id * 3) % 30);
+    const idNum = typeof p.id === 'number' ? p.id : (parseInt(String(p.id)) || 1);
+    const stock = override !== undefined ? override : (idNum % 4 === 0 ? 0 : idNum % 3 === 0 ? 6 : 15 + (idNum * 3) % 30);
     const threshold = 10;
     const status = stock === 0 ? 'Out of Stock' : stock <= threshold ? 'Low Stock' : 'In Stock';
     return {

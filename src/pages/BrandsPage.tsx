@@ -234,7 +234,7 @@ export function BrandsPage() {
                         {/* Logo Thumbnail */}
                         <td className="px-6 py-3.5">
                           <div className="w-10 h-10 rounded-xl border border-slate-200 overflow-hidden bg-slate-50 flex items-center justify-center p-1 shrink-0">
-                            {brand.logo ? (
+                            {brand.logo && brand.logo.trim() ? (
                               <img src={brand.logo} alt={brand.name} className="max-w-full max-h-full object-contain" />
                             ) : (
                               <Image className="w-5 h-5 text-slate-300" />
@@ -334,7 +334,7 @@ export function BrandsPage() {
                 <label className="block text-xs font-bold text-slate-700 mb-1">Logo / Image URL</label>
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl border border-slate-200 overflow-hidden bg-slate-50 flex items-center justify-center p-1 shrink-0">
-                    {brandLogo ? (
+                    {brandLogo && brandLogo.trim() ? (
                       <img src={brandLogo} alt="Preview" className="max-w-full max-h-full object-contain" />
                     ) : (
                       <Image className="w-6 h-6 text-slate-300" />

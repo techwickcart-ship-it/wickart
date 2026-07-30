@@ -877,12 +877,20 @@ export const marketplaceStore = {
       if (isUUID) {
         payload.id = category.id;
       }
-      const { data, error } = await supabase.from('categories').upsert(payload, { onConflict: isUUID ? 'id' : undefined }).select();
-      if (!error && data && data[0] && !isUUID) {
+      const onConflictTarget = isUUID ? 'id' : 'name';
+      const { data, error } = await supabase.from('categories').upsert(payload, { onConflict: onConflictTarget }).select();
+      if (error) {
+        console.error('Supabase save category error:', error.message, error);
+      } else if (data && data[0]) {
         const realId = data[0].id;
         const currentList = this.getCategories();
-        const updated = currentList.map(c => String(c.id) === String(category.id) ? { ...c, id: realId } : c);
+        const updated = currentList.map(c => 
+          (String(c.id) === String(category.id) || c.name.toLowerCase() === category.name.toLowerCase()) 
+            ? { ...c, id: realId } 
+            : c
+        );
         this.saveCategories(updated);
+        this.dispatchAllEvents();
       }
     } catch (err) {
       console.error('Failed to save category to Supabase:', err);
@@ -928,12 +936,20 @@ export const marketplaceStore = {
       if (isUUID) {
         payload.id = brand.id;
       }
-      const { data, error } = await supabase.from('brands').upsert(payload, { onConflict: isUUID ? 'id' : undefined }).select();
-      if (!error && data && data[0] && !isUUID) {
+      const onConflictTarget = isUUID ? 'id' : 'name';
+      const { data, error } = await supabase.from('brands').upsert(payload, { onConflict: onConflictTarget }).select();
+      if (error) {
+        console.error('Supabase save brand error:', error.message, error);
+      } else if (data && data[0]) {
         const realId = data[0].id;
         const currentList = this.getBrands();
-        const updated = currentList.map(b => String(b.id) === String(brand.id) ? { ...b, id: realId } : b);
+        const updated = currentList.map(b => 
+          (String(b.id) === String(brand.id) || b.name.toLowerCase() === brand.name.toLowerCase()) 
+            ? { ...b, id: realId } 
+            : b
+        );
         this.saveBrands(updated);
+        this.dispatchAllEvents();
       }
     } catch (err) {
       console.error('Failed to save brand to Supabase:', err);
@@ -1104,6 +1120,7 @@ export const marketplaceStore = {
       this.syncVendorsFromSupabase(),
       this.syncOrdersFromSupabase()
     ]);
+    await this.pushLocalDataToSupabase();
   },
 
   // SETTINGS

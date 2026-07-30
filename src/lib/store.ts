@@ -195,8 +195,7 @@ export function isAuthOrApiKeyError(error: any): boolean {
     lower.includes('unauthorized') ||
     lower.includes('jwserror') ||
     lower.includes('apikey') ||
-    lower.includes('jwt') ||
-    lower.includes('failed to fetch')
+    lower.includes('jwt')
   );
 }
 

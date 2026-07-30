@@ -130,21 +130,23 @@ export function StoreHeader({
 
   return (
     <header className="bg-white border-b border-slate-100 sticky top-0 z-50">
-      <div className="bg-slate-900 text-white px-4 py-2 text-xs font-medium flex justify-between items-center">
-         <div className="flex items-center gap-2 max-w-7xl mx-auto w-full justify-between">
-           <div className="flex items-center gap-2">
-             <MapPin className="w-3.5 h-3.5 text-blue-400" />
-             <span>Delivery Location: <strong className="text-white">Sultanpur, UP</strong></span>
+      {/* Top Banner Bar */}
+      <div className="bg-slate-900 text-white px-3 sm:px-4 py-1.5 text-xs font-medium">
+         <div className="flex flex-wrap items-center justify-between gap-1.5 max-w-7xl mx-auto w-full">
+           <div className="flex items-center gap-1.5 text-[11px] sm:text-xs">
+             <MapPin className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+             <span className="truncate">Delivery Location: <strong className="text-white">Sultanpur, UP</strong></span>
            </div>
-           <div className="flex items-center gap-4">
+           <div className="flex items-center gap-2.5 sm:gap-4 text-[10px] sm:text-xs font-semibold">
                <a href="/admin" className="text-amber-400 hover:text-amber-300 font-bold">Admin Portal</a>
-               <a href="/vendor-registration" className="hover:text-blue-300">Become a Seller</a>
+               <a href="/vendor-registration" className="hover:text-blue-300 hidden xs:inline">Become a Seller</a>
                <a href="/vendor-login" className="hover:text-blue-300">Vendor Login</a>
            </div>
          </div>
       </div>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-3">
           {activePage !== 'Home' && (
             <button
               onClick={() => {
@@ -154,22 +156,24 @@ export function StoreHeader({
                   onNavigate('Home');
                 }
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-full transition-all border border-slate-200 cursor-pointer shadow-xs mr-1"
+              className="flex items-center gap-1 px-2.5 py-1 sm:px-3 sm:py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-[11px] sm:text-xs font-bold rounded-full transition-all border border-slate-200 cursor-pointer shadow-xs"
               title="Go Back"
             >
-              <ArrowLeft className="w-4 h-4 text-slate-600" />
+              <ArrowLeft className="w-3.5 h-3.5 text-slate-600" />
               <span className="hidden sm:inline">Back</span>
             </button>
           )}
 
           <button 
             onClick={() => setMobileMenuOpen(true)}
-            className="lg:hidden p-2 text-slate-600 hover:bg-slate-50 rounded-lg"
+            className="lg:hidden p-1.5 sm:p-2 text-slate-600 hover:bg-slate-50 rounded-lg"
+            title="Open Menu"
           >
             <Menu className="w-5 h-5" />
           </button>
-          <div className="font-bold text-2xl tracking-tight text-slate-900 cursor-pointer flex items-center" onClick={() => onNavigate('Home')}>
-            <span className="text-blue-600 mr-1">{companyName.substring(0, Math.ceil(companyName.length / 2))}</span>
+          
+          <div className="font-bold text-xl sm:text-2xl tracking-tight text-slate-900 cursor-pointer flex items-center" onClick={() => onNavigate('Home')}>
+            <span className="text-blue-600 mr-0.5">{companyName.substring(0, Math.ceil(companyName.length / 2))}</span>
             <span>{companyName.substring(Math.ceil(companyName.length / 2))}</span>
           </div>
         </div>
@@ -544,6 +548,76 @@ export function StoreHeader({
           </div>
         </div>
       )}
+
+      {/* Sticky Mobile Bottom Navigation Bar (Ultra iPhone / Mobile Screen View) */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-3 py-1.5 flex items-center justify-around shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+        <button
+          onClick={() => onNavigate('Home')}
+          className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all cursor-pointer ${
+            activePage === 'Home' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <MapPin className="w-5 h-5 mb-0.5" />
+          <span className="text-[10px] tracking-tight">Home</span>
+        </button>
+
+        <button
+          onClick={() => onNavigate('Products')}
+          className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all cursor-pointer ${
+            activePage === 'Products' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <Package className="w-5 h-5 mb-0.5" />
+          <span className="text-[10px] tracking-tight">Catalog</span>
+        </button>
+
+        <button
+          onClick={onOpenWishlist}
+          className="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-500 hover:text-rose-600 transition-all relative cursor-pointer"
+        >
+          <div className="relative">
+            <Heart className={`w-5 h-5 mb-0.5 ${wishlistCount > 0 ? 'text-rose-500 fill-rose-500' : ''}`} />
+            {wishlistCount > 0 && (
+              <span className="absolute -top-1 -right-1.5 bg-rose-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white">
+                {wishlistCount}
+              </span>
+            )}
+          </div>
+          <span className="text-[10px] tracking-tight">Saved</span>
+        </button>
+
+        <button
+          onClick={onOpenCompare}
+          className="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-500 hover:text-amber-600 transition-all relative cursor-pointer"
+        >
+          <div className="relative">
+            <Repeat className="w-5 h-5 mb-0.5" />
+            {compareCount > 0 && (
+              <span className="absolute -top-1 -right-1.5 bg-amber-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white">
+                {compareCount}
+              </span>
+            )}
+          </div>
+          <span className="text-[10px] tracking-tight">Compare</span>
+        </button>
+
+        <button
+          onClick={() => onNavigate('Cart')}
+          className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all relative cursor-pointer ${
+            activePage === 'Cart' ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-blue-600'
+          }`}
+        >
+          <div className="relative">
+            <ShoppingCart className="w-5 h-5 mb-0.5" />
+            {cartCount > 0 && (
+              <span className="absolute -top-1 -right-1.5 bg-blue-600 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white animate-pulse">
+                {cartCount}
+              </span>
+            )}
+          </div>
+          <span className="text-[10px] tracking-tight">Cart</span>
+        </button>
+      </nav>
     </header>
   );
 }

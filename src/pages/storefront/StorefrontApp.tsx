@@ -259,7 +259,7 @@ export function StorefrontApp() {
         onViewProduct={handleViewProduct}
       />
       
-      <main className="flex-1">
+      <main className="flex-1 pb-16 lg:pb-0">
         {activePage === 'Home' && (
           <HomePage 
             onNavigate={handleNavigate} 

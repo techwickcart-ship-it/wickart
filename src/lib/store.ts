@@ -1,7 +1,7 @@
 import { supabase, getSupabaseCredentials } from './supabase';
 
 export interface Product {
-  id: number;
+  id: number | string;
   name: string;
   price: string;
   mrp?: string;
@@ -215,7 +215,8 @@ export const marketplaceStore = {
   },
   addProduct(product: Partial<Product>): Product {
     const list = this.getProducts();
-    const newId = list.length > 0 ? Math.max(...list.map(p => p.id)) + 1 : 1;
+    const numericIds = list.map(p => typeof p.id === 'number' ? p.id : (parseInt(String(p.id)) || 0)).filter(n => !isNaN(n));
+    const newId = numericIds.length > 0 ? Math.max(...numericIds) + 1 : Date.now();
     const item: Product = {
       id: newId,
       name: product.name || 'Unnamed Product',
@@ -253,6 +254,9 @@ export const marketplaceStore = {
       console.error(e);
     }
 
+    // Background sync to Supabase database
+    this.saveProductToSupabase(item).catch(err => console.warn('Product bg save error:', err));
+
     return item;
   },
   updateProduct(id: number | string, updatedFields: Partial<Product>): Product | null {
@@ -261,6 +265,8 @@ export const marketplaceStore = {
     if (index !== -1) {
       list[index] = { ...list[index], ...updatedFields };
       this.saveProducts(list);
+      // Background sync to Supabase database
+      this.saveProductToSupabase(list[index]).catch(err => console.warn('Product bg update error:', err));
       return list[index];
     }
     return null;
@@ -269,6 +275,8 @@ export const marketplaceStore = {
     const list = this.getProducts();
     const filtered = list.filter(p => String(p.id) !== String(id));
     this.saveProducts(filtered);
+    // Background sync deletion to Supabase database
+    this.deleteProductFromSupabase(id).catch(err => console.warn('Product bg delete error:', err));
   },
   getOrders(): Order[] {
     return getStored('orders', INITIAL_ORDERS);
@@ -311,6 +319,9 @@ export const marketplaceStore = {
       matchingSeller.revenue = `₹${newRev.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
       this.saveSellers(sellers);
     }
+
+    // Save order to Supabase in background
+    this.saveOrderToSupabase(newOrder).catch(err => console.warn('Order bg save error:', err));
 
     return newOrder;
   },
@@ -710,7 +721,357 @@ export const marketplaceStore = {
     }
   },
 
+  // --- SUPABASE SYNC FOR PRODUCTS ---
+  async syncProductsFromSupabase(): Promise<void> {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        const is401 = error.status === 401 || (error.message && (error.message.includes('401') || error.message.includes('Unauthorized') || error.message.includes('JWSError')));
+        if (is401) {
+          console.warn('Supabase fetch products returned 401 Unauthorized. Using local cache.');
+        } else {
+          console.warn('Supabase fetch products error:', error.message);
+        }
+        return;
+      }
+
+      if (data && data.length > 0) {
+        const mapped: Product[] = data.map((row: any) => {
+          const photoUrls = Array.isArray(row.photo_urls) ? row.photo_urls : [];
+          const primaryImg = photoUrls[0] || row.image_url || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600';
+          const numericPrice = row.selling_price !== null && row.selling_price !== undefined ? row.selling_price : 0;
+          const numericMrp = row.mrp !== null && row.mrp !== undefined ? row.mrp : null;
+
+          return {
+            id: row.id,
+            name: row.name || 'Unnamed Product',
+            price: `₹${numericPrice}`,
+            mrp: numericMrp !== null ? `₹${numericMrp}` : '',
+            rating: 4.8,
+            image: primaryImg,
+            images: photoUrls.length > 0 ? photoUrls : [primaryImg],
+            media: photoUrls.length > 0 ? photoUrls : [primaryImg],
+            sizes: Array.isArray(row.sizes) ? row.sizes : [],
+            variants: Array.isArray(row.variants) ? row.variants : [],
+            tag: row.combo_tag || row.status || 'Published',
+            vendor: row.main_store_category || 'Sultanpur Local Vendor',
+            sellerId: row.vendor_id || '1',
+            brand: row.brand || 'Generic',
+            shortDescription: row.short_description || '',
+            description: row.detailed_description || row.short_description || '',
+            category: row.main_store_category || row.custom_category || 'General',
+            isComboOffer: !!row.is_combo_offer,
+            comboTitle: row.combo_title || '',
+            comboItems: row.combo_items || '',
+            comboDiscount: row.combo_discount || '',
+            comboTag: row.combo_tag || '',
+            stock: row.total_allowed_qty || 50
+          };
+        });
+        setStored('products', mapped);
+      }
+    } catch (err) {
+      console.error('Failed to sync products from Supabase:', err);
+    }
+  },
+
+  async saveProductToSupabase(product: Product): Promise<void> {
+    try {
+      const numPrice = parseFloat(String(product.price || '').replace(/[^0-9.]/g, '')) || 0;
+      const numMrp = parseFloat(String(product.mrp || '').replace(/[^0-9.]/g, '')) || numPrice;
+      
+      const photos = product.media && product.media.length > 0 
+        ? product.media 
+        : (product.images && product.images.length > 0 ? product.images : (product.image ? [product.image] : []));
+
+      const payload: any = {
+        name: product.name,
+        selling_price: numPrice,
+        mrp: numMrp,
+        short_description: product.shortDescription || product.description || '',
+        detailed_description: product.description || product.shortDescription || '',
+        main_store_category: product.category || 'General',
+        is_combo_offer: !!product.isComboOffer,
+        combo_title: product.comboTitle || null,
+        combo_items: product.comboItems || null,
+        combo_discount: product.comboDiscount || null,
+        combo_tag: product.comboTag || null,
+        photo_urls: photos,
+        sizes: product.sizes || [],
+        variants: product.variants || [],
+        status: 'Published'
+      };
+
+      const isUUID = typeof product.id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(product.id);
+      if (isUUID) {
+        payload.id = product.id;
+      }
+
+      const { data, error } = await supabase
+        .from('products')
+        .upsert(payload, { onConflict: isUUID ? 'id' : undefined })
+        .select();
+
+      if (error) {
+        console.error('Supabase save product error:', error.message);
+      } else if (data && data[0] && !isUUID) {
+        const realId = data[0].id;
+        const currentList = this.getProducts();
+        const updated = currentList.map(p => String(p.id) === String(product.id) ? { ...p, id: realId } : p);
+        this.saveProducts(updated);
+      }
+    } catch (err) {
+      console.error('Failed to save product to Supabase:', err);
+    }
+  },
+
+  async deleteProductFromSupabase(id: number | string): Promise<void> {
+    try {
+      const isUUID = typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+      if (!isUUID) return;
+
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Supabase delete product error:', error.message);
+      }
+    } catch (err) {
+      console.error('Failed to delete product from Supabase:', err);
+    }
+  },
+
+  async syncCategoriesFromSupabase(): Promise<void> {
+    try {
+      const { data, error } = await supabase.from('categories').select('*');
+      if (error) return;
+      if (data && data.length > 0) {
+        const mapped = data.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          image: c.image_url || '',
+          status: c.status || 'Active',
+          count: 0
+        }));
+        setStored('categories', mapped);
+      }
+    } catch (err) {
+      console.error('Failed to sync categories from Supabase:', err);
+    }
+  },
+
+  async saveCategoryToSupabase(category: any): Promise<void> {
+    try {
+      const payload: any = {
+        name: category.name,
+        image_url: category.image || null,
+        status: category.status || 'Active'
+      };
+      const isUUID = typeof category.id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(category.id);
+      if (isUUID) {
+        payload.id = category.id;
+      }
+      const { data, error } = await supabase.from('categories').upsert(payload, { onConflict: isUUID ? 'id' : undefined }).select();
+      if (!error && data && data[0] && !isUUID) {
+        const realId = data[0].id;
+        const currentList = this.getCategories();
+        const updated = currentList.map(c => String(c.id) === String(category.id) ? { ...c, id: realId } : c);
+        this.saveCategories(updated);
+      }
+    } catch (err) {
+      console.error('Failed to save category to Supabase:', err);
+    }
+  },
+
+  async deleteCategoryFromSupabase(id: string): Promise<void> {
+    try {
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+      if (!isUUID) return;
+      await supabase.from('categories').delete().eq('id', id);
+    } catch (err) {
+      console.error('Failed to delete category from Supabase:', err);
+    }
+  },
+
+  async syncBrandsFromSupabase(): Promise<void> {
+    try {
+      const { data, error } = await supabase.from('brands').select('*');
+      if (error) return;
+      if (data && data.length > 0) {
+        const mapped: Brand[] = data.map((b: any) => ({
+          id: b.id,
+          name: b.name,
+          logo: b.logo_url || '',
+          status: b.status === 'Active' ? 'active' : 'inactive'
+        }));
+        setStored('brands', mapped);
+      }
+    } catch (err) {
+      console.error('Failed to sync brands from Supabase:', err);
+    }
+  },
+
+  async saveBrandToSupabase(brand: Brand): Promise<void> {
+    try {
+      const payload: any = {
+        name: brand.name,
+        logo_url: brand.logo || null,
+        status: brand.status === 'active' ? 'Active' : 'Inactive'
+      };
+      const isUUID = typeof brand.id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(brand.id);
+      if (isUUID) {
+        payload.id = brand.id;
+      }
+      const { data, error } = await supabase.from('brands').upsert(payload, { onConflict: isUUID ? 'id' : undefined }).select();
+      if (!error && data && data[0] && !isUUID) {
+        const realId = data[0].id;
+        const currentList = this.getBrands();
+        const updated = currentList.map(b => String(b.id) === String(brand.id) ? { ...b, id: realId } : b);
+        this.saveBrands(updated);
+      }
+    } catch (err) {
+      console.error('Failed to save brand to Supabase:', err);
+    }
+  },
+
+  async deleteBrandFromSupabase(id: string): Promise<void> {
+    try {
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+      if (!isUUID) return;
+      await supabase.from('brands').delete().eq('id', id);
+    } catch (err) {
+      console.error('Failed to delete brand from Supabase:', err);
+    }
+  },
+
+  async syncVendorsFromSupabase(): Promise<void> {
+    try {
+      const { data, error } = await supabase.from('vendors').select('*');
+      if (error) return;
+      if (data && data.length > 0) {
+        const mapped: Seller[] = data.map((v: any) => ({
+          id: v.id,
+          name: v.full_name || v.business_owner_name || 'Vendor Owner',
+          email: v.email || '',
+          storeName: v.store_display_name || v.legal_business_name || 'Vendor Store',
+          phone: v.mobile_number || '',
+          status: v.status === 'Approved' ? 'Active' : (v.status || 'Active'),
+          orders: 0,
+          revenue: '₹0.00',
+          rating: 4.8,
+          plan: v.commission_plan || 'Standard Plan',
+          category: v.primary_category || 'General',
+          city: v.city || 'Sultanpur',
+          address: v.store_address_line1 || '',
+          gstin: v.gstin_number || ''
+        }));
+        setStored('sellers', mapped);
+      }
+    } catch (err) {
+      console.error('Failed to sync vendors from Supabase:', err);
+    }
+  },
+
+  async saveVendorToSupabase(seller: Seller): Promise<void> {
+    try {
+      const payload: any = {
+        full_name: seller.name,
+        business_owner_name: seller.name,
+        mobile_number: seller.phone || `+91${Math.floor(1000000000 + Math.random() * 9000000000)}`,
+        email: seller.email || `${seller.id}@vendor.local`,
+        password_hash: 'hashed_password_default',
+        legal_business_name: seller.storeName,
+        store_display_name: seller.storeName,
+        primary_category: seller.category || 'General',
+        store_address_line1: seller.address || 'Sultanpur',
+        city: seller.city || 'Sultanpur',
+        state: 'Uttar Pradesh',
+        pincode: '228001',
+        aadhaar_number: '000000000000',
+        pan_number: 'ABCDE1234F',
+        bank_account_holder_name: seller.name,
+        bank_name: 'HDFC Bank',
+        account_number: '0000000000',
+        ifsc_code: 'HDFC0000001',
+        status: seller.status === 'Active' ? 'Approved' : 'Pending'
+      };
+
+      const isUUID = typeof seller.id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(seller.id);
+      if (isUUID) {
+        payload.id = seller.id;
+      }
+
+      const { data, error } = await supabase.from('vendors').upsert(payload, { onConflict: isUUID ? 'id' : undefined }).select();
+      if (!error && data && data[0] && !isUUID) {
+        const realId = data[0].id;
+        const currentList = this.getSellers();
+        const updated = currentList.map(s => String(s.id) === String(seller.id) ? { ...s, id: realId } : s);
+        this.saveSellers(updated);
+      }
+    } catch (err) {
+      console.error('Failed to save vendor to Supabase:', err);
+    }
+  },
+
+  async syncOrdersFromSupabase(): Promise<void> {
+    try {
+      const { data, error } = await supabase.from('pos_orders').select('*').order('created_at', { ascending: false });
+      if (error) return;
+      if (data && data.length > 0) {
+        const mapped: Order[] = data.map((o: any) => ({
+          id: o.order_number || o.id,
+          date: o.created_at ? new Date(o.created_at).toLocaleString() : new Date().toLocaleString(),
+          customer: o.customer_name || 'Walk-in Customer',
+          store: o.store_name || 'Main Store Counter',
+          amount: o.total_amount !== null && o.total_amount !== undefined ? `₹${o.total_amount}` : '₹0',
+          status: o.status || 'Confirmed',
+          phone: o.phone_number || '',
+          discountAmount: o.discount_amount ? `₹${o.discount_amount}` : '',
+          discountReason: o.discount_reason || ''
+        }));
+        setStored('orders', mapped);
+      }
+    } catch (err) {
+      console.error('Failed to sync orders from Supabase:', err);
+    }
+  },
+
+  async saveOrderToSupabase(order: Order): Promise<void> {
+    try {
+      const numAmt = parseFloat(String(order.amount || '').replace(/[^0-9.]/g, '')) || 0;
+      const numDiscount = parseFloat(String(order.discountAmount || '').replace(/[^0-9.]/g, '')) || 0;
+
+      const payload: any = {
+        order_number: order.id,
+        customer_name: order.customer,
+        phone_number: order.phone || null,
+        store_name: order.store,
+        total_amount: numAmt,
+        discount_amount: numDiscount,
+        discount_reason: order.discountReason || null,
+        status: order.status || 'Confirmed'
+      };
+
+      const { error } = await supabase.from('pos_orders').upsert(payload, { onConflict: 'order_number' });
+      if (error) {
+        console.error('Supabase save order error:', error.message);
+      }
+    } catch (err) {
+      console.error('Failed to save order to Supabase:', err);
+    }
+  },
+
   async pushLocalDataToSupabase(): Promise<void> {
+    const products = this.getProducts();
+    for (const product of products) {
+      await this.saveProductToSupabase(product);
+    }
     const partners = this.getDeliveryPartners();
     for (const partner of partners) {
       await this.saveDeliveryPartnerToSupabase(partner);
@@ -719,12 +1080,29 @@ export const marketplaceStore = {
     for (const coupon of coupons) {
       await this.saveCouponToSupabase(coupon);
     }
+    const categories = this.getCategories();
+    for (const cat of categories) {
+      await this.saveCategoryToSupabase(cat);
+    }
+    const brands = this.getBrands();
+    for (const brand of brands) {
+      await this.saveBrandToSupabase(brand);
+    }
+    const sellers = this.getSellers();
+    for (const seller of sellers) {
+      await this.saveVendorToSupabase(seller);
+    }
   },
 
   async syncAllFromSupabase(): Promise<void> {
     await Promise.all([
+      this.syncProductsFromSupabase(),
       this.syncDeliveryPartnersFromSupabase(),
-      this.syncCouponsFromSupabase()
+      this.syncCouponsFromSupabase(),
+      this.syncCategoriesFromSupabase(),
+      this.syncBrandsFromSupabase(),
+      this.syncVendorsFromSupabase(),
+      this.syncOrdersFromSupabase()
     ]);
   },
 
@@ -757,12 +1135,14 @@ export const marketplaceStore = {
     };
     list.unshift(newCat);
     this.saveCategories(list);
+    this.saveCategoryToSupabase(newCat).catch(err => console.warn(err));
     return newCat;
   },
   deleteCategory(id: string): void {
     const list = this.getCategories();
     const filtered = list.filter(c => String(c.id) !== String(id));
     this.saveCategories(filtered);
+    this.deleteCategoryFromSupabase(id).catch(err => console.warn(err));
   },
   updateCategory(id: string, updatedFields: Partial<any>): any {
     const list = this.getCategories();
@@ -770,6 +1150,7 @@ export const marketplaceStore = {
     if (index !== -1) {
       list[index] = { ...list[index], ...updatedFields };
       this.saveCategories(list);
+      this.saveCategoryToSupabase(list[index]).catch(err => console.warn(err));
       return list[index];
     }
     return null;

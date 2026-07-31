@@ -7,6 +7,7 @@ export function ReferralsPage() {
   const referralConfig = useMarketplaceData('referralConfig', () => marketplaceStore.getReferralConfig());
   const referralsList = useMarketplaceData('referralsList', () => marketplaceStore.getReferralsList());
   const customers = useMarketplaceData('customers', () => marketplaceStore.getCustomers());
+  const sellers = useMarketplaceData('sellers', () => marketplaceStore.getSellers());
 
   const [referrerAmount, setReferrerAmount] = useState(String(referralConfig.referrerAmount || 200));
   const [refereeAmount, setRefereeAmount] = useState(String(referralConfig.refereeAmount || 200));
@@ -14,9 +15,10 @@ export function ReferralsPage() {
   const [search, setSearch] = useState('');
 
   // Test Referral Simulation
-  const [testCode, setTestCode] = useState('ALOK200');
+  const [testCode, setTestCode] = useState('CITY200');
   const [testFriendName, setTestFriendName] = useState('Rahul Verma');
   const [testFriendPhone, setTestFriendPhone] = useState('9811223344');
+  const [testIsVendor, setTestIsVendor] = useState(false);
   const [testResultMsg, setTestResultMsg] = useState<string | null>(null);
 
   const handleSave = () => {
@@ -34,7 +36,7 @@ export function ReferralsPage() {
   const handleTestReferral = (e: React.FormEvent) => {
     e.preventDefault();
     if (!testCode || !testFriendName) return;
-    const res = marketplaceStore.processReferralCode(testCode, testFriendName, testFriendPhone);
+    const res = marketplaceStore.processReferralCode(testCode, testFriendName, testFriendPhone, testIsVendor);
     setTestResultMsg(res.message);
   };
 
@@ -101,23 +103,43 @@ export function ReferralsPage() {
                   </div>
                </CardHeader>
                <CardContent className="pt-4 space-y-3">
-                  <p className="text-xs text-slate-300">Simulate a new friend using an existing customer's referral code to watch wallets get credited live.</p>
+                  <p className="text-xs text-slate-300">Simulate a new user or vendor redeeming a referral code to watch wallets get credited live in real time.</p>
                   <div>
-                     <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Referral Code to Use</label>
+                     <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Referral Code to Redeem</label>
                      <select 
                        value={testCode} 
                        onChange={(e) => setTestCode(e.target.value)}
                        className="w-full px-3 py-2 bg-white/10 border border-white/20 text-white rounded-lg text-xs font-bold outline-none"
                      >
-                        {customers.map(c => (
-                           <option key={c.id} value={c.referralCode} className="bg-slate-900 text-white">
-                              {c.referralCode} ({c.name})
-                           </option>
-                        ))}
+                        <optgroup label="User / Customer Referral Codes" className="bg-slate-900 text-slate-300 font-bold">
+                          {customers.map(c => (
+                             <option key={c.id} value={c.referralCode} className="bg-slate-900 text-white">
+                                {c.referralCode} ({c.name}) - Bal: ₹{(Number(c.walletBalance)||0).toFixed(0)}
+                             </option>
+                          ))}
+                        </optgroup>
+                        <optgroup label="Vendor / Seller Referral Codes" className="bg-slate-900 text-slate-300 font-bold">
+                          {sellers.map(s => (
+                             <option key={s.id} value={s.referralCode || 'CITY200'} className="bg-slate-900 text-white">
+                                {s.referralCode || 'CITY200'} ({s.storeName}) - Bal: ₹{(Number(s.walletBalance)||0).toFixed(0)}
+                             </option>
+                          ))}
+                        </optgroup>
                      </select>
                   </div>
+                  <div className="flex items-center gap-3 pt-1">
+                     <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Account Type:</span>
+                     <label className="flex items-center gap-1.5 text-xs text-white cursor-pointer font-semibold">
+                        <input type="radio" name="refRole" checked={!testIsVendor} onChange={() => setTestIsVendor(false)} className="accent-emerald-400" />
+                        User / Customer
+                     </label>
+                     <label className="flex items-center gap-1.5 text-xs text-white cursor-pointer font-semibold">
+                        <input type="radio" name="refRole" checked={testIsVendor} onChange={() => setTestIsVendor(true)} className="accent-emerald-400" />
+                        Vendor / Seller
+                     </label>
+                  </div>
                   <div>
-                     <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">New Friend Full Name</label>
+                     <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">New Registrant Full / Store Name</label>
                      <input 
                        type="text" 
                        value={testFriendName}
@@ -127,7 +149,7 @@ export function ReferralsPage() {
                      />
                   </div>
                   <div>
-                     <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">New Friend Phone</label>
+                     <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Mobile Number</label>
                      <input 
                        type="text" 
                        value={testFriendPhone}

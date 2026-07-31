@@ -1,14 +1,18 @@
 import React from 'react';
 import { Card, CardContent } from '../../components/ui/Card';
-import { ShoppingCart, DollarSign, Package, TrendingUp, AlertCircle, ArrowUpRight } from 'lucide-react';
+import { ShoppingCart, DollarSign, Package, TrendingUp, Wallet, Gift } from 'lucide-react';
 import { marketplaceStore, useMarketplaceData } from '../../lib/store';
 import { useActiveSellerStore } from '../../lib/useActiveSellerStore';
 
 export function SellerDashboardPage() {
   const orders = useMarketplaceData('orders', () => marketplaceStore.getOrders());
   const products = useMarketplaceData('products', () => marketplaceStore.getProducts());
+  const sellers = useMarketplaceData('sellers', () => marketplaceStore.getSellers());
 
   const { activeSellerStoreName, activeSellerId } = useActiveSellerStore();
+
+  const activeSellerObj = sellers.find(s => s.id === activeSellerId || s.storeName.toLowerCase() === activeSellerStoreName.toLowerCase());
+  const vendorWalletBal = marketplaceStore.getSellerWalletBalance(activeSellerId) || marketplaceStore.getSellerWalletBalance(activeSellerStoreName);
 
   // Filter dynamic metrics for the logged-in store
   const storeOrders = orders.filter(o => 
@@ -32,10 +36,10 @@ export function SellerDashboardPage() {
   const deliveredOrders = storeOrders.filter(o => o.status === 'Delivered');
 
   const stats = [
+    { title: 'Vendor Wallet', value: `₹ ${vendorWalletBal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, change: 'Auto-Credited', icon: Wallet, color: 'text-emerald-600', bg: 'bg-emerald-100' },
     { title: 'Total Sales', value: `₹ ${totalSalesVal.toLocaleString('en-IN')}`, change: deliveredOrders.length > 0 ? '+14.5%' : 'Live', icon: DollarSign, color: 'text-blue-600', bg: 'bg-blue-100' },
     { title: 'New Orders', value: String(pendingOrders.length), change: pendingOrders.length > 0 ? `${pendingOrders.length} Pending` : 'Up to date', icon: ShoppingCart, color: 'text-emerald-600', bg: 'bg-emerald-100' },
     { title: 'Active Products', value: String(storeProducts.length), change: storeProducts.length > 0 ? 'Catalog Active' : 'No Items Yet', icon: Package, color: 'text-amber-600', bg: 'bg-amber-100' },
-    { title: 'Order Fulfillment', value: storeOrders.length > 0 ? `${Math.round((deliveredOrders.length / (storeOrders.length || 1)) * 100)}%` : '100%', change: 'Normal', icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-100' },
   ];
 
   return (
@@ -58,6 +62,38 @@ export function SellerDashboardPage() {
           <a href="/seller" onClick={(e) => { e.preventDefault(); window.dispatchEvent(new CustomEvent('nav_vendor', { detail: 'My Products' })); }} className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-md">
             Manage Products ({storeProducts.length})
           </a>
+        </div>
+      </div>
+
+      {/* Vendor Referral Code Banner */}
+      <div className="bg-gradient-to-r from-emerald-900 to-slate-900 text-white p-5 rounded-2xl shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border border-emerald-500/30">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
+            <Gift className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="font-bold text-sm text-white flex items-center gap-2">
+              Vendor Referral Program
+              <span className="bg-emerald-500 text-slate-950 font-black text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider">₹200 / Referral</span>
+            </h3>
+            <p className="text-xs text-slate-300 mt-0.5">Share your merchant referral code with other businesses or customers to earn ₹200 credited directly to your vendor wallet!</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 shrink-0">
+          <span className="text-xs text-slate-300 font-medium">Your Code:</span>
+          <span className="font-mono text-sm font-black text-amber-300 tracking-wider">
+            {activeSellerObj?.referralCode || 'VENDOR200'}
+          </span>
+          <button 
+            type="button"
+            onClick={() => {
+              navigator.clipboard.writeText(activeSellerObj?.referralCode || 'VENDOR200');
+              alert(`Referral Code (${activeSellerObj?.referralCode || 'VENDOR200'}) copied to clipboard!`);
+            }}
+            className="ml-2 px-2.5 py-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-[11px] rounded-lg transition-colors cursor-pointer"
+          >
+            Copy Code
+          </button>
         </div>
       </div>
 

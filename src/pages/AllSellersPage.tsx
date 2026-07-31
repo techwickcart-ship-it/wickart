@@ -87,6 +87,7 @@ export function AllSellersPage() {
                       <th className="px-6 py-4">Store Name</th>
                       <th className="px-6 py-4">Owner Name</th>
                       <th className="px-6 py-4">Contact Info</th>
+                      <th className="px-6 py-4">Wallet & Code</th>
                       <th className="px-6 py-4">Status</th>
                       <th className="px-6 py-4 text-right">Actions</th>
                    </tr>
@@ -102,6 +103,12 @@ export function AllSellersPage() {
                         <td className="px-6 py-4 text-slate-500">
                            <div>{seller.email}</div>
                            <div className="text-xs text-slate-400 mt-0.5">{seller.phone}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                           <div className="font-extrabold text-emerald-600">₹{(Number(seller.walletBalance) || 0).toFixed(2)}</div>
+                           <div className="text-[11px] font-mono font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/80 inline-block mt-0.5">
+                              {seller.referralCode || 'CITY200'}
+                           </div>
                         </td>
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-1 ${

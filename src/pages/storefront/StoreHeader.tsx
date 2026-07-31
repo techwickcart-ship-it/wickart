@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingCart, MapPin, Search, User, Menu, LogOut, Heart, Repeat, ArrowLeft, X, Tag, Package } from 'lucide-react';
+import { ShoppingCart, MapPin, Search, User, Menu, LogOut, Heart, Repeat, ArrowLeft, X, Tag, Package, Wallet } from 'lucide-react';
 import { navigateTo } from '../../lib/navigation';
 import { marketplaceStore } from '../../lib/store';
 
@@ -34,6 +34,26 @@ export function StoreHeader({
   const [isCustomerLoggedIn, setIsCustomerLoggedIn] = useState(() => {
     return localStorage.getItem('isCustomerLoggedIn') === 'true';
   });
+  const [walletBalance, setWalletBalance] = useState<number>(0);
+
+  // Sync wallet balance
+  useEffect(() => {
+    const syncWallet = () => {
+      const name = localStorage.getItem('customerName') || '';
+      const phone = localStorage.getItem('customerPhone') || '';
+      if (name || phone) {
+        const bal = marketplaceStore.getCustomerWalletBalance(phone || name);
+        setWalletBalance(bal);
+      }
+    };
+    syncWallet();
+    window.addEventListener('customerAuthUpdated', syncWallet);
+    window.addEventListener('marketplaceDataUpdated', syncWallet);
+    return () => {
+      window.removeEventListener('customerAuthUpdated', syncWallet);
+      window.removeEventListener('marketplaceDataUpdated', syncWallet);
+    };
+  }, [isCustomerLoggedIn, customerName]);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
@@ -362,6 +382,10 @@ export function StoreHeader({
         <div className="flex items-center gap-2 sm:gap-4">
           {isCustomerLoggedIn ? (
             <div className="flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200 text-xs font-bold" title="Available Wallet Cash">
+                <Wallet className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>₹{walletBalance.toFixed(2)}</span>
+              </div>
               <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-full border border-slate-200">
                 <User className="w-4 h-4 text-blue-600" />
                 <span className="text-xs font-bold text-slate-800 truncate max-w-[110px]" title={customerName}>

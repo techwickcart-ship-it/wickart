@@ -188,7 +188,7 @@ export function VendorRegistrationPage() {
           </div>
           <div className="flex justify-between border-b pb-2">
             <span className="text-slate-500">Referral Reward:</span>
-            <span className="font-bold text-emerald-600">₹200 Bonus Eligible</span>
+            <span className="font-bold text-emerald-600">🎉 ₹200.00 Credited to Vendor Wallet</span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">Approval Status:</span>
@@ -757,7 +757,7 @@ export function VendorRegistrationPage() {
             <button 
               type="button"
               onClick={() => {
-                marketplaceStore.addVendorRegistration({
+                const reg = marketplaceStore.addVendorRegistration({
                   name: formData.fullName || formData.ownerName || 'New Vendor',
                   businessName: formData.storeName || formData.legalName || 'New Business',
                   phone: formData.mobile || '',
@@ -784,6 +784,16 @@ export function VendorRegistrationPage() {
                   documents: uploadedDocsDetails,
                   status: 'Pending'
                 });
+
+                if (formData.referralCode && formData.referralCode.trim()) {
+                  marketplaceStore.processReferralCode(
+                    formData.referralCode.trim(),
+                    formData.storeName || formData.fullName || 'New Vendor Store',
+                    formData.mobile || '9800000000',
+                    true,
+                    reg.id
+                  );
+                }
                 setIsSubmitted(true);
               }}
               className="px-7 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-md flex items-center gap-1.5 transition-all cursor-pointer"

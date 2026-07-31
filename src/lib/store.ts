@@ -65,6 +65,8 @@ export interface Seller {
   orders: number;
   revenue: string;
   rating: number;
+  walletBalance?: number;
+  referralCode?: string;
   plan?: string;
   category?: string;
   city?: string;
@@ -413,7 +415,16 @@ export const marketplaceStore = {
 
   // SELLERS
   getSellers(): Seller[] {
-    return getStored('sellers', INITIAL_SELLERS);
+    const DEFAULT_SELLERS: Seller[] = [
+      { id: '1', name: 'Rajesh Kumar', email: 'rajesh@citymart.com', storeName: 'City Square Mart', phone: '9812345670', status: 'Active', orders: 48, revenue: '₹42,500.00', rating: 4.8, walletBalance: 500, referralCode: 'CITY200', plan: 'Enterprise Plan', category: 'Grocery', city: 'Sultanpur' },
+      { id: '2', name: 'Sunita Sharma', email: 'sunita@organic.com', storeName: 'Organic Fresh Hub', phone: '9898765432', status: 'Active', orders: 22, revenue: '₹18,200.00', rating: 4.6, walletBalance: 300, referralCode: 'ORGANIC200', plan: 'Standard Plan', category: 'Fruits & Veggies', city: 'Sultanpur' },
+    ];
+    const list = getStored('sellers', DEFAULT_SELLERS);
+    if (!list || list.length === 0) {
+      this.saveSellers(DEFAULT_SELLERS);
+      return DEFAULT_SELLERS;
+    }
+    return list;
   },
   saveSellers(sellers: Seller[]): void {
     setStored('sellers', sellers);
@@ -421,6 +432,9 @@ export const marketplaceStore = {
   addSeller(seller: Partial<Seller>): Seller {
     const list = this.getSellers();
     const newId = String(list.length > 0 ? Math.max(...list.map(s => parseInt(s.id) || 0)) + 1 : 1);
+    const cleanName = (seller.storeName || seller.name || 'VENDOR').split(' ')[0].toUpperCase().replace(/[^A-Z]/g, '');
+    const generatedRefCode = seller.referralCode || `${cleanName || 'VENDOR'}${Math.floor(100 + Math.random() * 899)}`;
+    
     const item: Seller = {
       id: newId,
       name: seller.name || 'New Seller',
@@ -431,6 +445,8 @@ export const marketplaceStore = {
       orders: seller.orders || 0,
       revenue: seller.revenue || '₹0.00',
       rating: seller.rating || 4.5,
+      walletBalance: seller.walletBalance !== undefined ? seller.walletBalance : 0,
+      referralCode: generatedRefCode,
       plan: seller.plan || 'Standard Plan',
       category: seller.category || 'General',
       city: seller.city || 'India',
@@ -447,6 +463,72 @@ export const marketplaceStore = {
       if (!isAuthOrApiKeyError(err)) console.warn('Vendor bg save error:', err);
     });
     return item;
+  },
+
+  getSellerWalletBalance(sellerIdOrStoreNameOrPhone: string): number {
+    if (!sellerIdOrStoreNameOrPhone) return 0;
+    const sellers = this.getSellers();
+    const clean = sellerIdOrStoreNameOrPhone.trim().toLowerCase();
+    const cleanPhone = clean.replace(/\D/g, '');
+    const seller = sellers.find(s =>
+      s.id === sellerIdOrStoreNameOrPhone ||
+      (cleanPhone.length > 3 && s.phone && s.phone.replace(/\D/g, '').endsWith(cleanPhone.slice(-10))) ||
+      s.storeName.toLowerCase() === clean ||
+      s.name.toLowerCase() === clean
+    );
+    return seller ? (Number(seller.walletBalance) || 0) : 0;
+  },
+
+  creditSellerWallet(sellerIdOrStoreNameOrPhone: string, amount: number, desc: string): number {
+    if (amount <= 0) return 0;
+    const sellers = this.getSellers();
+    const clean = (sellerIdOrStoreNameOrPhone || '').trim().toLowerCase();
+    const cleanPhone = clean.replace(/\D/g, '');
+
+    let sellerIndex = sellers.findIndex(s =>
+      s.id === sellerIdOrStoreNameOrPhone ||
+      (cleanPhone.length > 3 && s.phone && s.phone.replace(/\D/g, '').endsWith(cleanPhone.slice(-10))) ||
+      s.storeName.toLowerCase() === clean ||
+      s.name.toLowerCase() === clean
+    );
+
+    let targetSeller: Seller;
+    if (sellerIndex >= 0) {
+      targetSeller = sellers[sellerIndex];
+    } else {
+      targetSeller = this.addSeller({
+        name: sellerIdOrStoreNameOrPhone,
+        storeName: sellerIdOrStoreNameOrPhone,
+        phone: cleanPhone || '9800000000',
+        walletBalance: 0
+      });
+      sellerIndex = sellers.findIndex(s => s.id === targetSeller.id);
+    }
+
+    const currentBal = Number(targetSeller.walletBalance) || 0;
+    const newBal = currentBal + amount;
+    targetSeller.walletBalance = newBal;
+    if (sellerIndex >= 0) {
+      sellers[sellerIndex] = targetSeller;
+    }
+    this.saveSellers(sellers);
+
+    // Record wallet transaction
+    const wtxns = this.getWalletTransactions();
+    wtxns.unshift({
+      id: `WTXN-${Math.floor(1000 + Math.random() * 9000)}`,
+      date: new Date().toLocaleString('en-US', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }),
+      customer: targetSeller.storeName || targetSeller.name,
+      phone: targetSeller.phone || 'N/A',
+      desc: desc,
+      amount: `₹${amount.toFixed(2)}`,
+      type: 'Credit',
+      closingBal: `₹${newBal.toFixed(2)}`
+    });
+    this.saveWalletTransactions(wtxns);
+    this.dispatchAllEvents();
+
+    return newBal;
   },
 
   // COUPONS
@@ -1574,19 +1656,36 @@ export const marketplaceStore = {
     return { success: true, deducted: actualDeducted, newBalance: newBal };
   },
 
-  processReferralCode(referralCode: string, newCustomerName: string, newCustomerPhone: string): { success: boolean; message: string; referrerName?: string } {
+  processReferralCode(
+    referralCode: string,
+    newEntityName: string,
+    newEntityPhone: string,
+    isVendor: boolean = false,
+    newEntityId?: string
+  ): { success: boolean; message: string; referrerName?: string } {
     const codeClean = (referralCode || '').trim().toUpperCase();
     if (!codeClean) return { success: false, message: 'Please enter a valid referral code.' };
 
     const customers = this.getCustomers();
-    const referrer = customers.find(c => c.referralCode && c.referralCode.toUpperCase() === codeClean);
+    const sellers = this.getSellers();
+    const vendorRegs = this.getVendorRegistrations();
 
-    if (!referrer) {
+    // Find referrer in Customers or Sellers or Vendor Registrations
+    const referrerCust = customers.find(c => c.referralCode && c.referralCode.toUpperCase() === codeClean);
+    const referrerSeller = sellers.find(s => s.referralCode && s.referralCode.toUpperCase() === codeClean);
+    const referrerReg = vendorRegs.find(v => (v as any).referralCode && (v as any).referralCode.toUpperCase() === codeClean);
+
+    const referrerName = referrerCust?.name || referrerSeller?.storeName || referrerSeller?.name || referrerReg?.businessName || referrerReg?.name;
+    const referrerPhone = referrerCust?.phone || referrerSeller?.phone || referrerReg?.phone || '';
+    const referrerId = referrerCust?.id || referrerSeller?.id || referrerReg?.id || 'REF-X';
+    const referrerRole = referrerSeller || referrerReg ? 'Vendor' : 'User';
+
+    if (!referrerName) {
       return { success: false, message: `Referral code "${codeClean}" is invalid or not found.` };
     }
 
-    const referrerCleanPhone = (referrer.phone || '').replace(/\D/g, '');
-    const newCleanPhone = (newCustomerPhone || '').replace(/\D/g, '');
+    const referrerCleanPhone = (referrerPhone || '').replace(/\D/g, '');
+    const newCleanPhone = (newEntityPhone || '').replace(/\D/g, '');
     if (referrerCleanPhone.length > 5 && newCleanPhone.length > 5 && referrerCleanPhone.endsWith(newCleanPhone.slice(-10))) {
       return { success: false, message: 'You cannot use your own referral code.' };
     }
@@ -1595,47 +1694,48 @@ export const marketplaceStore = {
     const referrerReward = Number(config.referrerAmount) || 200;
     const refereeReward = Number(config.refereeAmount) || 200;
 
-    // Credit Referrer
-    this.creditCustomerWallet(
-      referrer.name,
-      referrer.phone,
-      referrerReward,
-      `Referral Reward for inviting ${newCustomerName || 'a new user'}`
-    );
+    // 1. Credit Referrer
+    if (referrerRole === 'Vendor' || referrerSeller) {
+      this.creditSellerWallet(referrerId || referrerName, referrerReward, `Referral Reward for inviting ${newEntityName || 'a new merchant/user'}`);
+      this.creditCustomerWallet(referrerName, referrerPhone, referrerReward, `Referral Reward for inviting ${newEntityName || 'a new merchant/user'}`);
+    } else {
+      this.creditCustomerWallet(referrerName, referrerPhone, referrerReward, `Referral Reward for inviting ${newEntityName || 'a new merchant/user'}`);
+    }
 
-    // Credit Referee
-    this.creditCustomerWallet(
-      newCustomerName,
-      newCustomerPhone,
-      refereeReward,
-      `Referral Bonus for signing up with code ${codeClean}`
-    );
+    // 2. Credit Referee (the newly created User or Seller/Vendor)
+    if (isVendor) {
+      this.creditSellerWallet(newEntityId || newEntityName || newEntityPhone, refereeReward, `Vendor Referral Bonus for signing up with code ${codeClean}`);
+      this.creditCustomerWallet(newEntityName, newEntityPhone, refereeReward, `Vendor Signup Bonus with code ${codeClean}`);
+    } else {
+      this.creditCustomerWallet(newEntityName, newEntityPhone, refereeReward, `Referral Bonus for signing up with code ${codeClean}`);
+    }
 
-    // Log in referrals list
+    // 3. Log in referrals list
     const referrals = this.getReferralsList();
-    const refereeCustomer = this.getOrCreateCustomer(newCustomerName, newCustomerPhone);
-    
+    const refereeCustomer = this.getOrCreateCustomer(newEntityName, newEntityPhone);
+
     const todayStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
     referrals.unshift({
       id: `REF-${Math.floor(100 + Math.random() * 899)}`,
-      referrerRole: 'User',
-      referrerId: referrer.id,
-      referrerName: referrer.name,
-      referrerPhone: referrer.phone,
-      refereeRole: 'User',
-      refereeId: refereeCustomer.id,
-      refereeName: newCustomerName,
-      refereePhone: newCustomerPhone,
+      referrerRole: referrerRole,
+      referrerId: referrerId,
+      referrerName: referrerName,
+      referrerPhone: referrerPhone,
+      refereeRole: isVendor ? 'Vendor' : 'User',
+      refereeId: newEntityId || refereeCustomer.id,
+      refereeName: newEntityName,
+      refereePhone: newEntityPhone,
       date: todayStr,
       status: 'Completed',
       earned: `₹${(referrerReward + refereeReward).toFixed(2)}`
     });
     this.saveReferralsList(referrals);
+    this.dispatchAllEvents();
 
     return {
       success: true,
-      message: `🎉 Referral code applied! ₹${refereeReward} bonus credited to your wallet! (${referrer.name} also received ₹${referrerReward})`,
-      referrerName: referrer.name
+      message: `🎉 Referral code applied! ₹${refereeReward} bonus credited to your wallet! (${referrerName} also received ₹${referrerReward})`,
+      referrerName: referrerName
     };
   },
 

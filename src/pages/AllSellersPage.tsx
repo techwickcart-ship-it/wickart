@@ -19,9 +19,23 @@ export function AllSellersPage() {
   
   const approveVendor = (id: string) => {
     const list = marketplaceStore.getSellers();
+    const target = list.find(s => s.id === id);
     const updated = list.map(s => s.id === id ? { ...s, status: 'Active' as const } : s);
     marketplaceStore.saveSellers(updated);
-    setNotification(`Approval complete. ID and Password sent to Vendor ${id} via WhatsApp.`);
+
+    if (target) {
+      // Sync vendorRegistrations
+      const regs = marketplaceStore.getVendorRegistrations();
+      const updatedRegs = regs.map(r => (r.email.toLowerCase() === target.email.toLowerCase() || r.phone === target.phone) ? { ...r, status: 'Approved' as const } : r);
+      marketplaceStore.saveVendorRegistrations(updatedRegs);
+
+      // Sync customers
+      const custs = marketplaceStore.getCustomers();
+      const updatedCusts = custs.map(c => ((c.email && c.email.toLowerCase() === target.email.toLowerCase()) || (c.phone && c.phone === target.phone)) ? { ...c, status: 'Active' } : c);
+      marketplaceStore.saveCustomers(updatedCusts);
+    }
+
+    setNotification(`Approval complete. Account activated for Vendor ${id}.`);
     setTimeout(() => setNotification(null), 5000);
   };
   

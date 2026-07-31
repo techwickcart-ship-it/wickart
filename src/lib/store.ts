@@ -197,7 +197,12 @@ export function isAuthOrApiKeyError(error: any): boolean {
     lower.includes('unauthorized') ||
     lower.includes('jwserror') ||
     lower.includes('apikey') ||
-    lower.includes('jwt')
+    lower.includes('jwt') ||
+    lower.includes('failed to fetch') ||
+    lower.includes('networkerror') ||
+    lower.includes('fetch failed') ||
+    lower.includes('load failed') ||
+    lower.includes('cors')
   );
 }
 
@@ -416,8 +421,10 @@ export const marketplaceStore = {
   // SELLERS
   getSellers(): Seller[] {
     const DEFAULT_SELLERS: Seller[] = [
-      { id: '1', name: 'Rajesh Kumar', email: 'rajesh@citymart.com', storeName: 'City Square Mart', phone: '9812345670', status: 'Active', orders: 48, revenue: '₹42,500.00', rating: 4.8, walletBalance: 500, referralCode: 'CITY200', plan: 'Enterprise Plan', category: 'Grocery', city: 'Sultanpur' },
-      { id: '2', name: 'Sunita Sharma', email: 'sunita@organic.com', storeName: 'Organic Fresh Hub', phone: '9898765432', status: 'Active', orders: 22, revenue: '₹18,200.00', rating: 4.6, walletBalance: 300, referralCode: 'ORGANIC200', plan: 'Standard Plan', category: 'Fruits & Veggies', city: 'Sultanpur' },
+      { id: '1', name: 'Rajesh Kumar', email: 'alok@citysquare.com', storeName: 'City Square Mart', phone: '9812345670', status: 'Active', orders: 48, revenue: '₹42,500.00', rating: 4.8, walletBalance: 500, referralCode: 'CITY200', plan: 'Enterprise Plan', category: 'Grocery', city: 'Sultanpur' },
+      { id: '2', name: 'Sunita Sharma', email: 'ravi@siliconvalley.com', storeName: 'Silicon Valley Store', phone: '9898765432', status: 'Active', orders: 22, revenue: '₹18,200.00', rating: 4.6, walletBalance: 300, referralCode: 'SILICON200', plan: 'Standard Plan', category: 'Electronics', city: 'Sultanpur' },
+      { id: '3', name: 'Suhani Sharma', email: 'suhani@freshorganic.com', storeName: 'Fresh Organic Foods', phone: '9811223344', status: 'Active', orders: 15, revenue: '₹12,400.00', rating: 4.9, walletBalance: 250, referralCode: 'ORGANIC200', plan: 'Standard Plan', category: 'Fruits & Veggies', city: 'Sultanpur' },
+      { id: '4', name: 'Amit Singh', email: 'amit@groceryhub.com', storeName: 'Amit Grocery Hub', phone: '9877665544', status: 'Active', orders: 30, revenue: '₹28,900.00', rating: 4.7, walletBalance: 400, referralCode: 'GROCERY200', plan: 'Enterprise Plan', category: 'Grocery', city: 'Sultanpur' }
     ];
     const list = getStored('sellers', DEFAULT_SELLERS);
     if (!list || list.length === 0) {
@@ -604,60 +611,36 @@ export const marketplaceStore = {
     connected: boolean;
     url: string;
     error?: string;
-    tables: {
-      delivery_partners: { status: 'Accessible' | 'Error' | 'Not Checked'; count?: number; error?: string };
-      coupons: { status: 'Accessible' | 'Error' | 'Not Checked'; count?: number; error?: string };
-    };
+    tables: Record<string, { status: 'Accessible' | 'Error' | 'Not Checked'; count?: number; error?: string }>;
   }> {
     const { url } = getSupabaseCredentials();
+    const tableNames = ['products', 'vendors', 'pos_orders', 'customers', 'categories', 'brands', 'delivery_partners', 'coupons'];
     const result: {
       connected: boolean;
       url: string;
       error?: string;
-      tables: {
-        delivery_partners: { status: 'Accessible' | 'Error' | 'Not Checked'; count?: number; error?: string };
-        coupons: { status: 'Accessible' | 'Error' | 'Not Checked'; count?: number; error?: string };
-      };
+      tables: Record<string, { status: 'Accessible' | 'Error' | 'Not Checked'; count?: number; error?: string }>;
     } = {
       connected: false,
       url,
-      tables: {
-        delivery_partners: { status: 'Not Checked' },
-        coupons: { status: 'Not Checked' }
-      }
+      tables: {}
     };
 
+    for (const tbl of tableNames) {
+      result.tables[tbl] = { status: 'Not Checked' };
+    }
+
     try {
-      // Test delivery_partners table
-      const { data: dpData, error: dpError } = await supabase
-        .from('delivery_partners')
-        .select('id')
-        .limit(1);
-
-      if (dpError) {
-        const is401 = isAuthOrApiKeyError(dpError);
-        const errMsg = is401 ? '401 Unauthorized: Invalid API key or missing anon key' : dpError.message;
-        result.tables.delivery_partners = { status: 'Error' as const, error: errMsg };
-      } else {
-        result.connected = true;
-        const { count } = await supabase.from('delivery_partners').select('*', { count: 'exact', head: true });
-        result.tables.delivery_partners = { status: 'Accessible' as const, count: count || 0 };
-      }
-
-      // Test coupons table
-      const { data: cData, error: cError } = await supabase
-        .from('coupons')
-        .select('id')
-        .limit(1);
-
-      if (cError) {
-        const is401 = isAuthOrApiKeyError(cError);
-        const errMsg = is401 ? '401 Unauthorized: Invalid API key or missing anon key' : cError.message;
-        result.tables.coupons = { status: 'Error' as const, error: errMsg };
-      } else {
-        result.connected = true;
-        const { count } = await supabase.from('coupons').select('*', { count: 'exact', head: true });
-        result.tables.coupons = { status: 'Accessible' as const, count: count || 0 };
+      for (const tbl of tableNames) {
+        const { data, error } = await supabase.from(tbl).select('id', { count: 'exact' }).limit(1);
+        if (error) {
+          const is401 = isAuthOrApiKeyError(error);
+          const errMsg = is401 ? '401 Unauthorized: Invalid API key or JWT token' : error.message;
+          result.tables[tbl] = { status: 'Error', error: errMsg };
+        } else {
+          result.connected = true;
+          result.tables[tbl] = { status: 'Accessible', count: data ? data.length : 0 };
+        }
       }
     } catch (err: any) {
       result.error = err.message || String(err);
@@ -1193,6 +1176,59 @@ export const marketplaceStore = {
     }
   },
 
+  async syncCustomersFromSupabase(): Promise<void> {
+    try {
+      const { data, error } = await supabase.from('customers').select('*');
+      if (error) {
+        if (!isAuthOrApiKeyError(error)) console.warn('Supabase fetch customers error:', error.message);
+        return;
+      }
+      if (data && data.length > 0) {
+        const mapped: any[] = data.map((c: any) => ({
+          id: c.custom_id || c.id,
+          name: c.name || 'Customer',
+          email: c.email || '',
+          phone: c.phone || '',
+          address: c.address || '',
+          orders: c.orders_count || 0,
+          walletBalance: Number(c.wallet_balance) || 0,
+          referralCode: c.referral_code || '',
+          status: c.status || 'Active'
+        }));
+        setStored('customers', mapped);
+      }
+    } catch (err) {
+      if (!isAuthOrApiKeyError(err)) console.error('Failed to sync customers from Supabase:', err);
+    }
+  },
+
+  async saveCustomerToSupabase(customer: any): Promise<void> {
+    try {
+      const payload: any = {
+        custom_id: String(customer.id),
+        name: customer.name || 'Customer',
+        email: customer.email || `${customer.id}@customer.local`,
+        phone: customer.phone || '',
+        address: customer.address || '',
+        wallet_balance: Number(customer.walletBalance) || 0,
+        referral_code: customer.referralCode || '',
+        status: customer.status || 'Active'
+      };
+
+      let { error } = await supabase.from('customers').upsert(payload, { onConflict: 'email' });
+      if (error) {
+        // Fallback without onConflict specified if email constraint is not present
+        const res = await supabase.from('customers').upsert(payload);
+        error = res.error;
+      }
+      if (error && !isAuthOrApiKeyError(error)) {
+        console.warn('Supabase save customer info:', error.message);
+      }
+    } catch (err) {
+      if (!isAuthOrApiKeyError(err)) console.warn('Failed to save customer to Supabase:', err);
+    }
+  },
+
   async pushLocalDataToSupabase(): Promise<void> {
     const products = this.getProducts();
     for (const product of products) {
@@ -1218,6 +1254,10 @@ export const marketplaceStore = {
     for (const seller of sellers) {
       await this.saveVendorToSupabase(seller);
     }
+    const customers = this.getCustomers();
+    for (const cust of customers) {
+      await this.saveCustomerToSupabase(cust);
+    }
   },
 
   async syncAllFromSupabase(): Promise<void> {
@@ -1228,7 +1268,8 @@ export const marketplaceStore = {
       this.syncCategoriesFromSupabase(),
       this.syncBrandsFromSupabase(),
       this.syncVendorsFromSupabase(),
-      this.syncOrdersFromSupabase()
+      this.syncOrdersFromSupabase(),
+      this.syncCustomersFromSupabase()
     ]);
     await this.pushLocalDataToSupabase();
   },
@@ -1384,6 +1425,7 @@ export const marketplaceStore = {
     };
     list.unshift(newCustomer);
     this.saveCustomers(list);
+    this.saveCustomerToSupabase(newCustomer).catch(err => console.warn('Customer bg save error:', err));
     return newCustomer;
   },
 
@@ -1479,6 +1521,14 @@ export const marketplaceStore = {
         documents: item.documents
       });
     }
+
+    // Also automatically create/update a customer entry so account is registered as User & Vendor
+    this.addCustomer({
+      name: item.name,
+      email: item.email,
+      phone: item.phone,
+      address: item.address || `${item.city || 'Sultanpur'}, India`
+    });
 
     return item;
   },

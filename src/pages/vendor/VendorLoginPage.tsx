@@ -18,40 +18,67 @@ export function VendorLoginPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (email === 'pending') {
-      setError('Your account is currently pending admin approval. You will receive WhatsApp notification once approved.');
+    const cleanCredential = email.trim().toLowerCase();
+
+    if (cleanCredential === 'pending') {
+      setError('Your vendor account is pending Admin approval. Vendors can only log in after an Administrator approves the account in the Admin Panel.');
       setSuccessMsg('');
       return;
     }
 
     const sellers = marketplaceStore.getSellers();
-    const matched = sellers.find(s => s.email.toLowerCase() === email.trim().toLowerCase());
+    const vendorRegs = marketplaceStore.getVendorRegistrations();
 
-    if (matched) {
-      localStorage.setItem('activeSellerId', matched.id);
-      localStorage.setItem('activeSellerStoreName', matched.storeName);
-    } else {
-      // Create a temporary store name if they login with any custom email, or select first
-      const storeName = email.includes('@') ? email.split('@')[0].toUpperCase() + ' Store' : 'Custom Seller Store';
-      const isNew = !sellers.some(s => s.email.toLowerCase() === email.trim().toLowerCase());
-      if (isNew) {
-        const newSeller = marketplaceStore.addSeller({
-          name: email.split('@')[0],
-          email: email.trim(),
-          storeName: storeName,
-          status: 'Active'
-        });
-        localStorage.setItem('activeSellerId', newSeller.id);
-        localStorage.setItem('activeSellerStoreName', newSeller.storeName);
-      } else {
-        const defaultSeller = sellers[0] || { id: '1', storeName: 'City Square Mart' };
-        localStorage.setItem('activeSellerId', defaultSeller.id);
-        localStorage.setItem('activeSellerStoreName', defaultSeller.storeName);
+    // Find seller or vendor registration
+    const matchedSeller = sellers.find(s => 
+      (s.email && s.email.toLowerCase() === cleanCredential) || 
+      (s.phone && s.phone.replace(/\D/g, '').endsWith(cleanCredential.replace(/\D/g, '')))
+    );
+
+    const matchedReg = vendorRegs.find(v => 
+      (v.email && v.email.toLowerCase() === cleanCredential) || 
+      (v.phone && v.phone.replace(/\D/g, '').endsWith(cleanCredential.replace(/\D/g, '')))
+    );
+
+    if (matchedSeller || matchedReg) {
+      const status = matchedSeller ? matchedSeller.status : (matchedReg?.status === 'Approved' ? 'Active' : 'Pending');
+
+      if (status === 'Pending') {
+        setError('Your vendor account is currently pending Admin approval. Vendors can only log in after an Administrator approves the account in the Admin Panel.');
+        setSuccessMsg('');
+        return;
       }
+
+      if (status === 'Suspended' || matchedReg?.status === 'Rejected') {
+        setError('Your vendor account has been rejected or suspended. Please contact platform support.');
+        setSuccessMsg('');
+        return;
+      }
+
+      // Approved & Active seller login
+      const targetSellerId = matchedSeller ? matchedSeller.id : (matchedReg?.id || '1');
+      const targetStoreName = matchedSeller ? matchedSeller.storeName : (matchedReg?.businessName || 'Seller Store');
+
+      localStorage.setItem('activeSellerId', targetSellerId);
+      localStorage.setItem('activeSellerStoreName', targetStoreName);
+      sessionStorage.setItem('sellerAuth', 'true');
+      navigateTo('/seller');
+      return;
     }
 
-    sessionStorage.setItem('sellerAuth', 'true');
-    navigateTo('/seller');
+    // New custom email trying to login directly
+    // Register account as User and Vendor with Pending status
+    const storeName = cleanCredential.includes('@') ? cleanCredential.split('@')[0].toUpperCase() + ' Store' : 'New Seller Store';
+    marketplaceStore.addVendorRegistration({
+      name: cleanCredential.includes('@') ? cleanCredential.split('@')[0] : 'New Vendor',
+      businessName: storeName,
+      email: cleanCredential,
+      phone: '+91 9000000000',
+      status: 'Pending'
+    });
+
+    setError('Account registered as User & Vendor! Your account is currently pending Admin approval. Vendors can only log in after an Administrator approves the account in the Admin Panel.');
+    setSuccessMsg('');
   };
 
   const handleForgotPassword = (e: React.MouseEvent) => {

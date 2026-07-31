@@ -53,6 +53,21 @@ export function VendorRegistrationsPage() {
           documents: target.documents
         });
       }
+
+      // Also ensure matching Customer entry is active
+      const customers = marketplaceStore.getCustomers();
+      const existingCust = customers.find(c => (c.email && c.email.toLowerCase() === target.email.toLowerCase()) || (c.phone && c.phone === target.phone));
+      if (existingCust) {
+        const updatedCusts = customers.map(c => c.id === existingCust.id ? { ...c, status: 'Active' } : c);
+        marketplaceStore.saveCustomers(updatedCusts);
+      } else {
+        marketplaceStore.addCustomer({
+          name: target.name,
+          email: target.email,
+          phone: target.phone,
+          address: target.address
+        });
+      }
     }
 
     setNotification(`Vendor ${id} approved successfully! Login credentials activated.`);

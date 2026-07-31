@@ -5,6 +5,9 @@ import { marketplaceStore, useMarketplaceData } from '../lib/store';
 
 export function ViewCustomersPage() {
   const customers = useMarketplaceData('customers', () => marketplaceStore.getCustomers());
+  const sellers = useMarketplaceData('sellers', () => marketplaceStore.getSellers());
+  const vendorRegs = useMarketplaceData('vendorRegistrations', () => marketplaceStore.getVendorRegistrations());
+
   const setCustomers = (updatedList: any[]) => marketplaceStore.saveCustomers(updatedList);
   const [search, setSearch] = useState('');
   const [selectedCust, setSelectedCust] = useState<any | null>(null);
@@ -87,10 +90,21 @@ export function ViewCustomersPage() {
                    </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                   {filteredCustomers.map((cust) => (
+                   {filteredCustomers.map((cust) => {
+                     const isVendor = sellers.some(s => (s.email && s.email.toLowerCase() === (cust.email || '').toLowerCase()) || (s.phone && s.phone === cust.phone)) ||
+                       vendorRegs.some(v => (v.email && v.email.toLowerCase() === (cust.email || '').toLowerCase()) || (v.phone && v.phone === cust.phone));
+
+                     return (
                      <tr key={cust.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-6 py-4">
-                           <div className="font-medium text-slate-900">{cust.name}</div>
+                           <div className="font-medium text-slate-900 flex items-center gap-2">
+                             <span>{cust.name}</span>
+                             {isVendor && (
+                               <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-200 rounded-md">
+                                 User & Vendor
+                               </span>
+                             )}
+                           </div>
                            <div className="text-xs text-slate-500">{cust.id}</div>
                         </td>
                         <td className="px-6 py-4">
@@ -141,7 +155,8 @@ export function ViewCustomersPage() {
                            </div>
                         </td>
                      </tr>
-                   ))}
+                   );
+                   })}
                 </tbody>
              </table>
           </div>

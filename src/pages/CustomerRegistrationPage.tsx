@@ -13,6 +13,7 @@ export function CustomerRegistrationPage() {
   const [houseNo, setHouseNo] = useState('');
   const [street, setStreet] = useState('');
   const [city, setCity] = useState('');
+  const [registerAsVendor, setRegisterAsVendor] = useState(false);
   const [loginCredential, setLoginCredential] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
@@ -35,6 +36,18 @@ export function CustomerRegistrationPage() {
       phone: mobile.trim() || '+91 9000000000',
       address: [houseNo, street, city].filter(Boolean).join(', ') || 'India'
     });
+
+    if (registerAsVendor) {
+      marketplaceStore.addVendorRegistration({
+        name: nameToSave,
+        businessName: `${nameToSave}'s Store`,
+        email: email.trim() || `${nameToSave.toLowerCase().replace(/\s+/g, '')}@example.com`,
+        phone: mobile.trim() || '+91 9000000000',
+        city: city || 'Sultanpur',
+        address: [houseNo, street, city].filter(Boolean).join(', '),
+        status: 'Pending'
+      });
+    }
 
     window.dispatchEvent(new Event('customerAuthUpdated'));
     setIsSubmitted(true);
@@ -291,6 +304,19 @@ export function CustomerRegistrationPage() {
 
                 {/* Terms & Submit */}
                 <div className="p-6 md:p-8 space-y-4 bg-slate-50/50">
+                   <label className="flex items-center gap-3 cursor-pointer bg-blue-50/80 border border-blue-200 p-3.5 rounded-xl">
+                      <input 
+                        type="checkbox" 
+                        checked={registerAsVendor}
+                        onChange={(e) => setRegisterAsVendor(e.target.checked)}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" 
+                      />
+                      <div>
+                        <span className="text-sm font-bold text-blue-900 block">Also register my account as a Vendor / Seller</span>
+                        <span className="text-xs text-blue-700 font-medium block">Your vendor profile will be submitted to Admin Panel for approval.</span>
+                      </div>
+                   </label>
+
                    {[
                       'I agree to the Terms & Conditions',
                       'I agree to the Privacy Policy'

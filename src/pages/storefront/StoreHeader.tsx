@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingCart, MapPin, Search, User, Menu, LogOut, Heart, Repeat, ArrowLeft, X, Tag, Package, Wallet } from 'lucide-react';
+import { ShoppingCart, MapPin, Search, User, Menu, LogOut, Heart, Repeat, ArrowLeft, X, Tag, Package, Wallet, ExternalLink, ShieldCheck, FileText, Building2, UserPlus, ChevronDown } from 'lucide-react';
 import { navigateTo } from '../../lib/navigation';
 import { marketplaceStore } from '../../lib/store';
 
@@ -148,6 +148,20 @@ export function StoreHeader({
 
   const hasSuggestions = matchedProducts.length > 0 || matchedCategories.length > 0 || matchedBrands.length > 0;
 
+  // Quick Open Next Tab Dropdown State
+  const [showNextTabMenu, setShowNextTabMenu] = useState(false);
+  const nextTabRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleNextTabClickOutside = (e: MouseEvent) => {
+      if (nextTabRef.current && !nextTabRef.current.contains(e.target as Node)) {
+        setShowNextTabMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleNextTabClickOutside);
+    return () => document.removeEventListener('mousedown', handleNextTabClickOutside);
+  }, []);
+
   return (
     <header className="bg-white border-b border-slate-100 sticky top-0 z-50">
       {/* Top Banner Bar */}
@@ -157,10 +171,125 @@ export function StoreHeader({
              <MapPin className="w-3.5 h-3.5 text-blue-400 shrink-0" />
              <span className="truncate">Delivery Location: <strong className="text-white">Sultanpur, UP</strong></span>
            </div>
-           <div className="flex items-center gap-2.5 sm:gap-4 text-[10px] sm:text-xs font-semibold">
-               <a href="/admin" className="text-amber-400 hover:text-amber-300 font-bold">Admin Portal</a>
-               <a href="/vendor-registration" className="hover:text-blue-300 hidden xs:inline">Become a Seller</a>
-               <a href="/vendor-login" className="hover:text-blue-300">Vendor Login</a>
+           
+           <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs font-semibold">
+               <a 
+                 href="/admin" 
+                 target="_blank" 
+                 rel="noopener noreferrer" 
+                 className="text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1"
+                 title="Open Admin Login in new tab"
+               >
+                 <span>Admin Login</span>
+                 <ExternalLink className="w-3 h-3 opacity-70" />
+               </a>
+               <span className="text-slate-700">|</span>
+               <a 
+                 href="/vendor-registration" 
+                 target="_blank" 
+                 rel="noopener noreferrer" 
+                 className="hover:text-blue-300 flex items-center gap-1 hidden xs:flex"
+                 title="Open Vendor Registration in new tab"
+               >
+                 <span>Vendor Registration</span>
+                 <ExternalLink className="w-3 h-3 opacity-70" />
+               </a>
+               <span className="text-slate-700 hidden xs:inline">|</span>
+               <a 
+                 href="/customer-registration" 
+                 target="_blank" 
+                 rel="noopener noreferrer" 
+                 className="hover:text-blue-300 flex items-center gap-1"
+                 title="Open User Registration in new tab"
+               >
+                 <span>User Register</span>
+                 <ExternalLink className="w-3 h-3 opacity-70" />
+               </a>
+
+               {/* Quick "Open in Next Tab" Dropdown */}
+               <div ref={nextTabRef} className="relative ml-1">
+                 <button
+                   type="button"
+                   onClick={() => setShowNextTabMenu(!showNextTabMenu)}
+                   className="bg-blue-600 hover:bg-blue-500 text-white px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                 >
+                   <span>Open Next Tab</span>
+                   <ChevronDown className="w-3 h-3" />
+                 </button>
+
+                 {showNextTabMenu && (
+                   <div className="absolute right-0 mt-1 w-52 bg-white text-slate-800 rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 text-xs">
+                     <div className="px-3 py-1 font-bold text-[10px] text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1">
+                       Open Page in New Tab
+                     </div>
+                     <a
+                       href="/admin"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       onClick={() => setShowNextTabMenu(false)}
+                       className="flex items-center justify-between px-3 py-1.5 hover:bg-amber-50 text-amber-900 font-medium transition-colors"
+                     >
+                       <span className="flex items-center gap-2">
+                         <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+                         Admin Login
+                       </span>
+                       <ExternalLink className="w-3 h-3 text-slate-400" />
+                     </a>
+                     <a
+                       href="/vendor-registration"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       onClick={() => setShowNextTabMenu(false)}
+                       className="flex items-center justify-between px-3 py-1.5 hover:bg-blue-50 text-blue-900 font-medium transition-colors"
+                     >
+                       <span className="flex items-center gap-2">
+                         <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                         Vendor Registration
+                       </span>
+                       <ExternalLink className="w-3 h-3 text-slate-400" />
+                     </a>
+                     <a
+                       href="/customer-registration"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       onClick={() => setShowNextTabMenu(false)}
+                       className="flex items-center justify-between px-3 py-1.5 hover:bg-emerald-50 text-emerald-900 font-medium transition-colors"
+                     >
+                       <span className="flex items-center gap-2">
+                         <UserPlus className="w-3.5 h-3.5 text-emerald-600" />
+                         User Register
+                       </span>
+                       <ExternalLink className="w-3 h-3 text-slate-400" />
+                     </a>
+                     <a
+                       href="/#about"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       onClick={() => setShowNextTabMenu(false)}
+                       className="flex items-center justify-between px-3 py-1.5 hover:bg-slate-50 text-slate-800 font-medium transition-colors"
+                     >
+                       <span className="flex items-center gap-2">
+                         <FileText className="w-3.5 h-3.5 text-slate-500" />
+                         About Us Page
+                       </span>
+                       <ExternalLink className="w-3 h-3 text-slate-400" />
+                     </a>
+                     <a
+                       href="/#privacy-policy"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       onClick={() => setShowNextTabMenu(false)}
+                       className="flex items-center justify-between px-3 py-1.5 hover:bg-slate-50 text-slate-800 font-medium transition-colors"
+                     >
+                       <span className="flex items-center gap-2">
+                         <FileText className="w-3.5 h-3.5 text-slate-500" />
+                         Policy Page
+                       </span>
+                       <ExternalLink className="w-3 h-3 text-slate-400" />
+                     </a>
+                   </div>
+                 )}
+               </div>
            </div>
          </div>
       </div>
@@ -564,14 +693,25 @@ export function StoreHeader({
               )}
 
               <div className="grid grid-cols-1 gap-2 pt-2">
-                <a href="/admin" onClick={() => setMobileMenuOpen(false)} className="block text-center py-2 px-4 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold rounded-xl border border-amber-200/60 transition-colors">
-                  Admin Portal
+                <a href="/admin" target="_blank" rel="noopener noreferrer" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between py-2 px-4 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold rounded-xl border border-amber-200/60 transition-colors">
+                  <span>Admin Login</span>
+                  <ExternalLink className="w-3.5 h-3.5 text-amber-600" />
                 </a>
-                <a href="/vendor-registration" onClick={() => setMobileMenuOpen(false)} className="block text-center py-2 px-4 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl border border-blue-250/60 transition-colors">
-                  Become a Seller
+                <a href="/vendor-registration" target="_blank" rel="noopener noreferrer" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between py-2 px-4 bg-blue-50 hover:bg-blue-100 text-blue-800 text-xs font-bold rounded-xl border border-blue-250/60 transition-colors">
+                  <span>Vendor Registration</span>
+                  <ExternalLink className="w-3.5 h-3.5 text-blue-600" />
                 </a>
-                <a href="/vendor-login" onClick={() => setMobileMenuOpen(false)} className="block text-center py-2 px-4 text-slate-600 hover:bg-slate-50 text-xs font-bold rounded-xl border border-slate-200 transition-colors">
-                  Vendor Login
+                <a href="/customer-registration" target="_blank" rel="noopener noreferrer" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between py-2 px-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold rounded-xl border border-emerald-250/60 transition-colors">
+                  <span>User Register</span>
+                  <ExternalLink className="w-3.5 h-3.5 text-emerald-600" />
+                </a>
+                <a href="/#about" target="_blank" rel="noopener noreferrer" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between py-2 px-4 bg-slate-50 hover:bg-slate-100 text-slate-800 text-xs font-bold rounded-xl border border-slate-200 transition-colors">
+                  <span>About Us Page</span>
+                  <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
+                </a>
+                <a href="/#privacy-policy" target="_blank" rel="noopener noreferrer" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-between py-2 px-4 bg-slate-50 hover:bg-slate-100 text-slate-800 text-xs font-bold rounded-xl border border-slate-200 transition-colors">
+                  <span>Policy Page</span>
+                  <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
                 </a>
               </div>
             </div>

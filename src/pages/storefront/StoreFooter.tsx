@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, Phone, Mail, Instagram, Facebook, Twitter } from 'lucide-react';
+import { MapPin, Phone, Mail, Instagram, Facebook, Twitter, ExternalLink } from 'lucide-react';
 
 interface StoreFooterProps {
   onNavigate: (page: string) => void;
@@ -31,21 +31,47 @@ export function StoreFooter({ onNavigate }: StoreFooterProps) {
          </div>
 
          <div>
-            <h4 className="text-white font-bold mb-6">Quick Links</h4>
+            <h4 className="text-white font-bold mb-6">Portals & Accounts (New Tab)</h4>
             <ul className="space-y-3 text-sm">
-               <li><button onClick={() => onNavigate('Home')} className="hover:text-white transition-colors">Home</button></li>
+               <li>
+                  <a href="/admin" target="_blank" rel="noopener noreferrer" className="hover:text-amber-400 transition-colors flex items-center gap-1.5 text-amber-300 font-semibold">
+                     <span>Admin Login</span>
+                     <ExternalLink className="w-3.5 h-3.5 opacity-80" />
+                  </a>
+               </li>
+               <li>
+                  <a href="/vendor-registration" target="_blank" rel="noopener noreferrer" className="hover:text-blue-300 transition-colors flex items-center gap-1.5 text-blue-400 font-medium">
+                     <span>Vendor Registration</span>
+                     <ExternalLink className="w-3.5 h-3.5 opacity-80" />
+                  </a>
+               </li>
+               <li>
+                  <a href="/customer-registration" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-300 transition-colors flex items-center gap-1.5 text-emerald-400 font-medium">
+                     <span>User Register / Login</span>
+                     <ExternalLink className="w-3.5 h-3.5 opacity-80" />
+                  </a>
+               </li>
+               <li><button onClick={() => onNavigate('Home')} className="hover:text-white transition-colors">Storefront Home</button></li>
                <li><button onClick={() => onNavigate('Products')} className="hover:text-white transition-colors">All Products</button></li>
-               <li><button onClick={() => onNavigate('About')} className="hover:text-white transition-colors">About Us</button></li>
-               <li><button onClick={() => onNavigate('Contact')} className="hover:text-white transition-colors">Contact Us</button></li>
-               <li><button onClick={() => window.open('/vendor-registration', '_blank')} className="hover:text-white transition-colors text-blue-400 font-medium">Become a Vendor</button></li>
             </ul>
          </div>
 
          <div>
-            <h4 className="text-white font-bold mb-6">Policies</h4>
+            <h4 className="text-white font-bold mb-6">About & Policies</h4>
             <ul className="space-y-3 text-sm">
+               <li>
+                  <a href="/#about" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors inline-flex items-center gap-1.5">
+                     <span>About Us Page</span>
+                     <ExternalLink className="w-3 h-3 text-slate-500" />
+                  </a>
+               </li>
+               <li>
+                  <a href="/#privacy-policy" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors inline-flex items-center gap-1.5">
+                     <span>Privacy Policy</span>
+                     <ExternalLink className="w-3 h-3 text-slate-500" />
+                  </a>
+               </li>
                <li><button onClick={() => onNavigate('Terms & Conditions')} className="hover:text-white transition-colors">Terms & Conditions</button></li>
-               <li><button onClick={() => onNavigate('Privacy Policy')} className="hover:text-white transition-colors">Privacy Policy</button></li>
                <li><button onClick={() => onNavigate('Shipping Policy')} className="hover:text-white transition-colors">Shipping Policy</button></li>
                <li><button onClick={() => onNavigate('Cancellation & Refund')} className="hover:text-white transition-colors">Cancellation & Refund</button></li>
             </ul>

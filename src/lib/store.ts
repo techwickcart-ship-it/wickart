@@ -1075,7 +1075,24 @@ export const marketplaceStore = {
           address: v.store_address_line1 || '',
           gstin: v.gstin_number || ''
         }));
-        setStored('sellers', mapped);
+
+        const currentLocal = getStored<Seller[]>('sellers', []);
+        const byKey = new Map<string, Seller>();
+
+        for (const item of mapped) {
+          const key = (item.email || item.phone || String(item.id)).toLowerCase();
+          byKey.set(key, item);
+        }
+        for (const item of currentLocal) {
+          const key = (item.email || item.phone || String(item.id)).toLowerCase();
+          if (!byKey.has(key)) {
+            byKey.set(key, item);
+          }
+        }
+
+        const merged = Array.from(byKey.values());
+        setStored('sellers', merged);
+        this.dispatchAllEvents();
       }
     } catch (err) {
       if (!isAuthOrApiKeyError(err)) console.error('Failed to sync vendors from Supabase:', err);
@@ -1107,18 +1124,33 @@ export const marketplaceStore = {
       };
 
       const isUUID = typeof seller.id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(seller.id);
+
+      let existingId: string | null = null;
       if (isUUID) {
-        payload.id = seller.id;
+        existingId = seller.id;
+      } else if (payload.email || payload.mobile_number) {
+        const filterStr = payload.email ? `email.eq.${payload.email}` : `mobile_number.eq.${payload.mobile_number}`;
+        const { data: existing } = await supabase.from('vendors').select('id').or(filterStr).limit(1);
+        if (existing && existing.length > 0) {
+          existingId = existing[0].id;
+        }
       }
 
-      const { data, error } = await supabase.from('vendors').upsert(payload, { onConflict: isUUID ? 'id' : undefined }).select();
-      if (error) {
-        if (!isAuthOrApiKeyError(error)) console.error('Supabase save vendor error:', error.message);
-      } else if (data && data[0] && !isUUID) {
-        const realId = data[0].id;
-        const currentList = this.getSellers();
-        const updated = currentList.map(s => String(s.id) === String(seller.id) ? { ...s, id: realId } : s);
-        this.saveSellers(updated);
+      if (existingId) {
+        const { error } = await supabase.from('vendors').update(payload).eq('id', existingId);
+        if (error && !isAuthOrApiKeyError(error)) {
+          console.warn('Supabase update vendor error:', error.message);
+        }
+      } else {
+        const { data, error } = await supabase.from('vendors').insert(payload).select();
+        if (error && !isAuthOrApiKeyError(error)) {
+          console.warn('Supabase insert vendor error:', error.message);
+        } else if (data && data[0]) {
+          const realId = data[0].id;
+          const currentList = this.getSellers();
+          const updated = currentList.map(s => String(s.id) === String(seller.id) ? { ...s, id: realId } : s);
+          this.saveSellers(updated);
+        }
       }
     } catch (err) {
       if (!isAuthOrApiKeyError(err)) console.error('Failed to save vendor to Supabase:', err);
@@ -1185,17 +1217,36 @@ export const marketplaceStore = {
       }
       if (data && data.length > 0) {
         const mapped: any[] = data.map((c: any) => ({
-          id: c.custom_id || c.id,
-          name: c.name || 'Customer',
+          id: c.id,
+          name: c.full_name || 'Customer',
           email: c.email || '',
-          phone: c.phone || '',
-          address: c.address || '',
-          orders: c.orders_count || 0,
+          phone: c.mobile_number || '',
+          address: c.street_area || [c.house_flat_no, c.landmark, c.city].filter(Boolean).join(', ') || '',
+          orders: 0,
           walletBalance: Number(c.wallet_balance) || 0,
           referralCode: c.referral_code || '',
-          status: c.status || 'Active'
+          status: 'Active'
         }));
-        setStored('customers', mapped);
+
+        const currentLocal = getStored<any[]>('customers', []);
+        const byKey = new Map<string, any>();
+
+        // Populate from Supabase
+        for (const item of mapped) {
+          const key = (item.email || item.phone || item.id).toLowerCase();
+          byKey.set(key, item);
+        }
+        // Also keep local ones not yet synced
+        for (const item of currentLocal) {
+          const key = (item.email || item.phone || item.id).toLowerCase();
+          if (!byKey.has(key)) {
+            byKey.set(key, item);
+          }
+        }
+
+        const merged = Array.from(byKey.values());
+        setStored('customers', merged);
+        this.dispatchAllEvents();
       }
     } catch (err) {
       if (!isAuthOrApiKeyError(err)) console.error('Failed to sync customers from Supabase:', err);
@@ -1205,24 +1256,41 @@ export const marketplaceStore = {
   async saveCustomerToSupabase(customer: any): Promise<void> {
     try {
       const payload: any = {
-        custom_id: String(customer.id),
-        name: customer.name || 'Customer',
-        email: customer.email || `${customer.id}@customer.local`,
-        phone: customer.phone || '',
-        address: customer.address || '',
+        full_name: customer.name || 'Customer',
+        mobile_number: customer.phone || '',
+        email: customer.email || `${customer.id || Date.now()}@customer.local`,
+        street_area: customer.address || '',
         wallet_balance: Number(customer.walletBalance) || 0,
-        referral_code: customer.referralCode || '',
-        status: customer.status || 'Active'
+        referral_code: customer.referralCode || ''
       };
 
-      let { error } = await supabase.from('customers').upsert(payload, { onConflict: 'email' });
-      if (error) {
-        // Fallback without onConflict specified if email constraint is not present
-        const res = await supabase.from('customers').upsert(payload);
-        error = res.error;
+      const isUUID = typeof customer.id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(customer.id);
+      
+      let existingId: string | null = null;
+      if (isUUID) {
+        existingId = customer.id;
+      } else if (payload.email) {
+        const { data: existing } = await supabase.from('customers').select('id').eq('email', payload.email).limit(1);
+        if (existing && existing.length > 0) {
+          existingId = existing[0].id;
+        }
       }
-      if (error && !isAuthOrApiKeyError(error)) {
-        console.warn('Supabase save customer info:', error.message);
+
+      if (existingId) {
+        const { error } = await supabase.from('customers').update(payload).eq('id', existingId);
+        if (error && !isAuthOrApiKeyError(error)) {
+          console.warn('Supabase update customer info:', error.message);
+        }
+      } else {
+        const { data, error } = await supabase.from('customers').insert(payload).select();
+        if (error && !isAuthOrApiKeyError(error)) {
+          console.warn('Supabase insert customer info:', error.message);
+        } else if (data && data[0]) {
+          const realId = data[0].id;
+          const currentList = this.getCustomers();
+          const updated = currentList.map(c => String(c.id) === String(customer.id) ? { ...c, id: realId } : c);
+          this.saveCustomers(updated);
+        }
       }
     } catch (err) {
       if (!isAuthOrApiKeyError(err)) console.warn('Failed to save customer to Supabase:', err);
@@ -1272,6 +1340,7 @@ export const marketplaceStore = {
       this.syncCustomersFromSupabase()
     ]);
     await this.pushLocalDataToSupabase();
+    this.dispatchAllEvents();
   },
 
   // SETTINGS

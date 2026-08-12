@@ -1,4 +1,4 @@
-import { supabase, getSupabaseCredentials } from './supabase';
+import { supabase, getSupabaseCredentials, clearSupabaseCache } from './supabase';
 
 export interface Product {
   id: number | string;
@@ -1115,41 +1115,49 @@ export const marketplaceStore = {
   },
 
   async saveVendorToSupabase(seller: Seller): Promise<void> {
+    if (!supabase) return;
     try {
+      const s = seller as any;
       const payload: any = {
-        full_name: seller.name,
-        business_owner_name: seller.name,
-        mobile_number: seller.phone || `+91${Math.floor(1000000000 + Math.random() * 9000000000)}`,
-        email: seller.email || `${seller.id}@vendor.local`,
-        password_hash: 'hashed_password_default',
-        legal_business_name: seller.storeName,
-        store_display_name: seller.storeName,
-        primary_category: seller.category || 'General',
-        store_address_line1: seller.address || 'Sultanpur',
-        city: seller.city || 'Sultanpur',
-        state: 'Uttar Pradesh',
-        pincode: '228001',
-        aadhaar_number: '000000000000',
-        pan_number: 'ABCDE1234F',
-        bank_account_holder_name: seller.name,
-        bank_name: 'HDFC Bank',
-        account_number: '0000000000',
-        ifsc_code: 'HDFC0000001',
-        status: seller.status === 'Active' ? 'Approved' : 'Pending'
+        full_name: s.businessOwnerName || s.name || 'Vendor Owner',
+        business_owner_name: s.businessOwnerName || s.name || 'Vendor Owner',
+        mobile_number: s.mobileNumber || s.phone || `+91${Math.floor(1000000000 + Math.random() * 9000000000)}`,
+        email: s.email || `${s.id}@vendor.local`,
+        password_hash: s.passwordHash || s.password || 'hashed_password_default',
+        legal_business_name: s.legalBusinessName || s.storeDisplayName || s.storeName || 'Vendor Store',
+        store_display_name: s.storeDisplayName || s.storeName || s.legalBusinessName || 'Vendor Store',
+        primary_category: s.primaryCategory || s.category || 'General',
+        store_address_line1: s.storeAddressLine1 || s.address || 'Sultanpur',
+        city: s.city || 'Sultanpur',
+        state: s.state || 'Uttar Pradesh',
+        pincode: s.pincode || '228001',
+        aadhaar_number: s.aadhaarNumber || '000000000000',
+        pan_number: s.panNumber || 'ABCDE1234F',
+        bank_account_holder_name: s.bankAccountHolderName || s.businessOwnerName || s.name || 'Vendor Owner',
+        bank_name: s.bankName || 'HDFC Bank',
+        account_number: s.accountNumber || '0000000000',
+        ifsc_code: s.ifscCode || 'HDFC0000001',
+        status: s.status === 'Approved' ? 'Approved' : s.status === 'Rejected' ? 'Rejected' : 'Pending'
       };
 
-      const isUUID = typeof seller.id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(seller.id);
+      const isUUID = typeof s.id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s.id);
 
       let existingId: string | null = null;
       if (isUUID) {
-        existingId = seller.id;
+        existingId = s.id;
       } else if (payload.email) {
-        const { data: existingByEmail } = await supabase.from('vendors').select('id').eq('email', payload.email).limit(1);
+        const { data: existingByEmail, error: findErr1 } = await supabase.from('vendors').select('id').eq('email', payload.email).limit(1);
+        if (findErr1 && isAuthOrApiKeyError(findErr1)) {
+          clearSupabaseCache();
+        }
         if (existingByEmail && existingByEmail.length > 0) {
           existingId = existingByEmail[0].id;
         }
       } else if (payload.mobile_number) {
-        const { data: existingByPhone } = await supabase.from('vendors').select('id').eq('mobile_number', payload.mobile_number).limit(1);
+        const { data: existingByPhone, error: findErr2 } = await supabase.from('vendors').select('id').eq('mobile_number', payload.mobile_number).limit(1);
+        if (findErr2 && isAuthOrApiKeyError(findErr2)) {
+          clearSupabaseCache();
+        }
         if (existingByPhone && existingByPhone.length > 0) {
           existingId = existingByPhone[0].id;
         }
@@ -1158,21 +1166,31 @@ export const marketplaceStore = {
       if (existingId) {
         const { error } = await supabase.from('vendors').update(payload).eq('id', existingId);
         if (error) {
-          console.warn('Supabase update vendor notice:', error.message);
+          if (isAuthOrApiKeyError(error)) {
+            clearSupabaseCache();
+          } else {
+            console.warn('Supabase update vendor notice:', error.message);
+          }
         }
       } else {
         const { data, error } = await supabase.from('vendors').insert(payload).select();
         if (error) {
-          console.warn('Supabase insert vendor notice:', error.message);
+          if (isAuthOrApiKeyError(error)) {
+            clearSupabaseCache();
+          } else {
+            console.warn('Supabase insert vendor notice:', error.message);
+          }
         } else if (data && data[0]) {
           const realId = data[0].id;
           const currentList = this.getSellers();
-          const updated = currentList.map(s => String(s.id) === String(seller.id) ? { ...s, id: realId } : s);
+          const updated = currentList.map(item => String(item.id) === String(s.id) ? { ...item, id: realId } : item);
           this.saveSellers(updated);
         }
       }
     } catch (err) {
-      console.error('Failed to save vendor to Supabase:', err);
+      if (!isAuthOrApiKeyError(err)) {
+        console.error('Failed to save vendor to Supabase:', err);
+      }
     }
   },
 

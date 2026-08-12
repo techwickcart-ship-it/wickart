@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
 import { Save, UploadCloud, Building2, Scale, Image as ImageIcon, Database, Check, AlertTriangle, RefreshCw, Play, Laptop, HelpCircle, Trash2, ShieldCheck, Lock, EyeOff, CheckCircle, Key } from 'lucide-react';
 import { marketplaceStore } from '../lib/store';
-import { getSupabaseCredentials, reinitSupabaseClient } from '../lib/supabase';
+import { getSupabaseCredentials, reinitSupabaseClient, clearSupabaseCache } from '../lib/supabase';
 
 export function SettingsPage() {
   const [activeTab, setActiveTab] = useState('general');
@@ -104,6 +104,25 @@ export function SettingsPage() {
       setStatusMessage(`Fetch failed: ${err.message || err}`);
     } finally {
       setIsFetching(false);
+    }
+  };
+
+  const handleClearCacheAndSync = async () => {
+    setIsSyncing(true);
+    setStatusMessage('Clearing cached credentials and forcing full data synchronization with Supabase...');
+    try {
+      clearSupabaseCache();
+      setSupabaseUrlInput(getSupabaseCredentials().url);
+      setSupabaseKeyInput(getSupabaseCredentials().anonKey);
+      await marketplaceStore.pushLocalDataToSupabase();
+      await marketplaceStore.syncAllFromSupabase();
+      const status = await marketplaceStore.checkSupabaseStatus();
+      setDbStatus(status);
+      setStatusMessage('Cache cleared and local records successfully saved & synchronized to Supabase!');
+    } catch (err: any) {
+      setStatusMessage(`Clear & Sync failed: ${err.message || err}`);
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -544,7 +563,15 @@ export function SettingsPage() {
                         />
                       </div>
                     </div>
-                    <div className="flex justify-end pt-1">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                      <button
+                        onClick={handleClearCacheAndSync}
+                        disabled={isSyncing || isTesting}
+                        className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Clear Cache & Force Supabase Sync
+                      </button>
                       <button
                         onClick={handleSaveCredentials}
                         disabled={isTesting}

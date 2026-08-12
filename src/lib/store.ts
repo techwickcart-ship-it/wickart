@@ -1143,23 +1143,27 @@ export const marketplaceStore = {
       let existingId: string | null = null;
       if (isUUID) {
         existingId = seller.id;
-      } else if (payload.email || payload.mobile_number) {
-        const filterStr = payload.email ? `email.eq.${payload.email}` : `mobile_number.eq.${payload.mobile_number}`;
-        const { data: existing } = await supabase.from('vendors').select('id').or(filterStr).limit(1);
-        if (existing && existing.length > 0) {
-          existingId = existing[0].id;
+      } else if (payload.email) {
+        const { data: existingByEmail } = await supabase.from('vendors').select('id').eq('email', payload.email).limit(1);
+        if (existingByEmail && existingByEmail.length > 0) {
+          existingId = existingByEmail[0].id;
+        }
+      } else if (payload.mobile_number) {
+        const { data: existingByPhone } = await supabase.from('vendors').select('id').eq('mobile_number', payload.mobile_number).limit(1);
+        if (existingByPhone && existingByPhone.length > 0) {
+          existingId = existingByPhone[0].id;
         }
       }
 
       if (existingId) {
         const { error } = await supabase.from('vendors').update(payload).eq('id', existingId);
-        if (error && !isAuthOrApiKeyError(error)) {
-          console.warn('Supabase update vendor error:', error.message);
+        if (error) {
+          console.warn('Supabase update vendor notice:', error.message);
         }
       } else {
         const { data, error } = await supabase.from('vendors').insert(payload).select();
-        if (error && !isAuthOrApiKeyError(error)) {
-          console.warn('Supabase insert vendor error:', error.message);
+        if (error) {
+          console.warn('Supabase insert vendor notice:', error.message);
         } else if (data && data[0]) {
           const realId = data[0].id;
           const currentList = this.getSellers();
@@ -1168,7 +1172,7 @@ export const marketplaceStore = {
         }
       }
     } catch (err) {
-      if (!isAuthOrApiKeyError(err)) console.error('Failed to save vendor to Supabase:', err);
+      console.error('Failed to save vendor to Supabase:', err);
     }
   },
 

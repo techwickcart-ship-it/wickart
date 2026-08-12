@@ -53,8 +53,40 @@ export function SellerPanel() {
 
   const { activeSellerStoreName, activeSellerId, sellers, changeSeller } = useActiveSellerStore();
 
+  const isSellerAuth = sessionStorage.getItem('sellerAuth') === 'true';
+
   const orders = useMarketplaceData('orders', () => marketplaceStore.getOrders());
   const pendingOrdersCount = orders.filter(o => o.store === activeSellerStoreName && o.status === 'Pending').length;
+
+  if (!isSellerAuth || !activeSellerId) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl text-center space-y-4 border border-slate-200">
+          <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto text-amber-600">
+            <Store className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-900">Vendor Access Restricted</h2>
+          <p className="text-sm text-slate-500">
+            You must be logged in with a registered and approved vendor account to view the Seller Dashboard.
+          </p>
+          <div className="pt-2 space-y-2">
+            <button 
+              onClick={() => navigateTo('/vendor-login')}
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all cursor-pointer"
+            >
+              Go to Vendor Login
+            </button>
+            <button 
+              onClick={() => navigateTo('/vendor-registration')}
+              className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition-all cursor-pointer text-sm"
+            >
+              Apply as New Vendor
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     const syncSellerTabFromUrl = () => {

@@ -479,37 +479,7 @@ export function VendorRegistrationPage() {
                   </div>
                 </div>
 
-                <div className="md:col-span-2 bg-blue-50/50 border border-blue-200/80 rounded-xl p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <MapPin className="w-5 h-5 text-blue-600" />
-                    <div>
-                      <p className="text-xs font-bold text-slate-800">Map Location Pinned</p>
-                      <p className="text-[11px] text-slate-500">Lat: 18.9388° N, Long: 72.8353° E (Mumbai Fort)</p>
-                    </div>
-                  </div>
-                  <button type="button" className="text-xs font-bold text-blue-600 bg-white px-3 py-1.5 rounded-lg border border-blue-200 hover:bg-blue-50">
-                    Change Pin
-                  </button>
-                </div>
 
-                <div>
-                  <label className="text-xs font-bold text-slate-700 mb-1 block">Delivery Radius</label>
-                  <select value={formData.deliveryRadius} onChange={e => updateField('deliveryRadius', e.target.value)} className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 outline-none">
-                    <option>2 KM (Express Neighborhood)</option>
-                    <option>5 KM (City Standard)</option>
-                    <option>10 KM (Metropolitan Area)</option>
-                    <option>Pan India Shipping</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-slate-700 mb-1 block">Fulfillment Mode</label>
-                  <select value={formData.deliveryMode} onChange={e => updateField('deliveryMode', e.target.value)} className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 outline-none">
-                    <option>Platform Express Logistics</option>
-                    <option>Self-Ship Merchant Delivery</option>
-                    <option>Hybrid Mode</option>
-                  </select>
-                </div>
               </div>
             </div>
           )}
@@ -847,11 +817,14 @@ export function VendorRegistrationPage() {
                   return;
                 }
 
+                const pwd = (formData.password || '').trim();
+
                 const reg = marketplaceStore.addVendorRegistration({
                   name: name,
                   businessName: storeName,
                   phone: mobile,
                   email: email,
+                  password: pwd,
                   plan: selectedCommissionPlan,
                   category: formData.category,
                   city: formData.city,

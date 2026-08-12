@@ -5,42 +5,32 @@ export function useActiveSellerStore() {
   const sellers = useMarketplaceData('sellers', () => marketplaceStore.getSellers());
 
   const getStoredName = () => {
-    const name = localStorage.getItem('activeSellerStoreName');
-    if (name) return name;
-    return sellers[sellers.length - 1]?.storeName || 'City Square Mart';
+    return localStorage.getItem('activeSellerStoreName') || '';
   };
 
   const getStoredId = () => {
-    const id = localStorage.getItem('activeSellerId');
-    if (id) return id;
-    return sellers[sellers.length - 1]?.id || '1';
+    return localStorage.getItem('activeSellerId') || '';
   };
 
   const [activeSellerStoreName, setActiveSellerStoreName] = useState<string>(getStoredName);
   const [activeSellerId, setActiveSellerId] = useState<string>(getStoredId);
 
   useEffect(() => {
-    const currentName = localStorage.getItem('activeSellerStoreName');
-    const currentId = localStorage.getItem('activeSellerId');
+    const currentName = localStorage.getItem('activeSellerStoreName') || '';
+    const currentId = localStorage.getItem('activeSellerId') || '';
 
-    if (!currentName && sellers.length > 0) {
-      const defaultSeller = sellers[sellers.length - 1] || sellers[0];
-      localStorage.setItem('activeSellerStoreName', defaultSeller.storeName);
-      localStorage.setItem('activeSellerId', defaultSeller.id);
-      setActiveSellerStoreName(defaultSeller.storeName);
-      setActiveSellerId(defaultSeller.id);
-    } else if (currentName && currentName !== activeSellerStoreName) {
+    if (currentName !== activeSellerStoreName) {
       setActiveSellerStoreName(currentName);
     }
-    if (currentId && currentId !== activeSellerId) {
+    if (currentId !== activeSellerId) {
       setActiveSellerId(currentId);
     }
   }, [sellers]);
 
   useEffect(() => {
     const handleSellerChanged = () => {
-      const name = localStorage.getItem('activeSellerStoreName') || sellers[sellers.length - 1]?.storeName || 'City Square Mart';
-      const id = localStorage.getItem('activeSellerId') || sellers[sellers.length - 1]?.id || '1';
+      const name = localStorage.getItem('activeSellerStoreName') || '';
+      const id = localStorage.getItem('activeSellerId') || '';
       setActiveSellerStoreName(name);
       setActiveSellerId(id);
     };

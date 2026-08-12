@@ -53,31 +53,45 @@ export function VendorLoginPage() {
       (v.phone && v.phone.replace(/\D/g, '').endsWith(cleanCredential.replace(/\D/g, '')))
     );
 
-    if (matchedSeller || matchedReg) {
-      const status = matchedSeller ? matchedSeller.status : (matchedReg?.status === 'Approved' ? 'Active' : 'Pending');
-
-      if (status === 'Pending') {
-        setError('Your vendor account is currently pending Admin approval. Vendors can only log in after an Administrator approves the account in the Admin Panel.');
-        return;
-      }
-
-      if (status === 'Suspended' || matchedReg?.status === 'Rejected') {
-        setError('Your vendor account has been rejected or suspended. Please contact platform support.');
-        return;
-      }
-
-      // Approved & Active seller login
-      const targetSellerId = matchedSeller ? matchedSeller.id : (matchedReg?.id || '1');
-      const targetStoreName = matchedSeller ? matchedSeller.storeName : (matchedReg?.businessName || 'Seller Store');
-
-      localStorage.setItem('activeSellerId', targetSellerId);
-      localStorage.setItem('activeSellerStoreName', targetStoreName);
-      sessionStorage.setItem('sellerAuth', 'true');
-      navigateTo('/seller');
+    if (!matchedSeller && !matchedReg) {
+      setError('Vendor account not found. You are not registered as a vendor. Please register your store first before attempting to log in.');
       return;
     }
 
-    setError('Vendor account not found. Please register your store first using the Vendor Registration form.');
+    const status = matchedSeller ? matchedSeller.status : (matchedReg?.status === 'Approved' ? 'Active' : matchedReg?.status || 'Pending');
+
+    if (status === 'Pending') {
+      setError('Your vendor account is currently pending Admin approval. Vendors can only log in after an Administrator approves the account in the Admin Panel.');
+      return;
+    }
+
+    if (status === 'Suspended' || matchedReg?.status === 'Rejected') {
+      setError('Your vendor account has been rejected or suspended. Please contact platform support.');
+      return;
+    }
+
+    // Verify Password
+    const savedPassword = matchedSeller?.password || matchedReg?.password;
+    if (savedPassword) {
+      if (cleanPassword !== savedPassword) {
+        setError('Incorrect password. Please enter the correct password for your vendor account.');
+        return;
+      }
+    } else {
+      if (cleanPassword.length < 6) {
+        setError('Invalid password. Password must be at least 6 characters.');
+        return;
+      }
+    }
+
+    // Approved & Active seller login
+    const targetSellerId = matchedSeller ? matchedSeller.id : (matchedReg?.id || '1');
+    const targetStoreName = matchedSeller ? matchedSeller.storeName : (matchedReg?.businessName || 'Seller Store');
+
+    localStorage.setItem('activeSellerId', targetSellerId);
+    localStorage.setItem('activeSellerStoreName', targetStoreName);
+    sessionStorage.setItem('sellerAuth', 'true');
+    navigateTo('/seller');
   };
 
   const handleForgotPassword = (e: React.MouseEvent) => {
@@ -244,15 +258,9 @@ export function VendorLoginPage() {
                New to our platform? <a href="/vendor-registration" className="text-blue-600 font-bold hover:underline">Apply as a Vendor</a>
              </p>
 
-             <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 text-left text-xs text-slate-500 space-y-1.5 max-w-sm mx-auto shadow-sm mt-4">
-                <p className="font-bold text-slate-600">Demo Vendor Accounts (Use any password):</p>
-                <ul className="list-disc pl-4 space-y-1">
-                  <li><span className="font-semibold text-blue-600">alok@citysquare.com</span> (City Square Mart)</li>
-                  <li><span className="font-semibold text-blue-600">ravi@siliconvalley.com</span> (Silicon Valley Store)</li>
-                  <li><span className="font-semibold text-blue-600">suhani@freshorganic.com</span> (Fresh Organic Foods)</li>
-                  <li><span className="font-semibold text-blue-600">amit@groceryhub.com</span> (Amit Grocery Hub)</li>
-                </ul>
-                <p className="italic text-[10px] text-slate-400 mt-1">Or sign in with any other email to automatically generate a custom seller store.</p>
+             <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 text-left text-xs text-slate-500 space-y-1.5 max-w-sm mx-auto shadow-sm mt-4 text-center">
+                <p className="font-semibold text-slate-600">Registered & Approved Vendors Only</p>
+                <p className="text-[11px] text-slate-500">Please enter your registered credentials and password to log in.</p>
              </div>
 
          </div>

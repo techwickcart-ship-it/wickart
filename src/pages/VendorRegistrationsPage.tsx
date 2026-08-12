@@ -24,6 +24,7 @@ export function VendorRegistrationsPage() {
         const updatedSellers = sellers.map(s => s.id === existing.id ? { 
           ...s, 
           status: 'Active' as const,
+          password: target.password || s.password,
           plan: target.plan,
           category: target.category,
           city: target.city,
@@ -40,6 +41,7 @@ export function VendorRegistrationsPage() {
           name: target.name,
           email: target.email,
           phone: target.phone,
+          password: target.password,
           storeName: target.businessName,
           status: 'Active',
           plan: target.plan,

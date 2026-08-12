@@ -59,6 +59,7 @@ export interface Seller {
   id: string;
   name: string;
   email: string;
+  password?: string;
   storeName: string;
   phone: string;
   status: 'Active' | 'Pending' | 'Suspended';
@@ -147,6 +148,7 @@ export interface VendorRegistration {
   businessName: string;
   phone: string;
   email: string;
+  password?: string;
   date: string;
   status: 'Pending' | 'Approved' | 'Rejected';
   plan?: string;
@@ -420,16 +422,12 @@ export const marketplaceStore = {
 
   // SELLERS
   getSellers(): Seller[] {
-    const DEFAULT_SELLERS: Seller[] = [
-      { id: '1', name: 'Rajesh Kumar', email: 'alok@citysquare.com', storeName: 'City Square Mart', phone: '9812345670', status: 'Active', orders: 48, revenue: '₹42,500.00', rating: 4.8, walletBalance: 500, referralCode: 'CITY200', plan: 'Enterprise Plan', category: 'Grocery', city: 'Sultanpur' },
-      { id: '2', name: 'Sunita Sharma', email: 'ravi@siliconvalley.com', storeName: 'Silicon Valley Store', phone: '9898765432', status: 'Active', orders: 22, revenue: '₹18,200.00', rating: 4.6, walletBalance: 300, referralCode: 'SILICON200', plan: 'Standard Plan', category: 'Electronics', city: 'Sultanpur' },
-      { id: '3', name: 'Suhani Sharma', email: 'suhani@freshorganic.com', storeName: 'Fresh Organic Foods', phone: '9811223344', status: 'Active', orders: 15, revenue: '₹12,400.00', rating: 4.9, walletBalance: 250, referralCode: 'ORGANIC200', plan: 'Standard Plan', category: 'Fruits & Veggies', city: 'Sultanpur' },
-      { id: '4', name: 'Amit Singh', email: 'amit@groceryhub.com', storeName: 'Amit Grocery Hub', phone: '9877665544', status: 'Active', orders: 30, revenue: '₹28,900.00', rating: 4.7, walletBalance: 400, referralCode: 'GROCERY200', plan: 'Enterprise Plan', category: 'Grocery', city: 'Sultanpur' }
-    ];
-    const list = getStored('sellers', DEFAULT_SELLERS);
-    if (!list || list.length === 0) {
-      this.saveSellers(DEFAULT_SELLERS);
-      return DEFAULT_SELLERS;
+    const list = getStored<Seller[]>('sellers', []);
+    const MOCK_EMAILS = ['alok@citysquare.com', 'ravi@siliconvalley.com', 'suhani@freshorganic.com', 'amit@groceryhub.com'];
+    const cleanList = list.filter(s => s.email && !MOCK_EMAILS.includes(s.email.toLowerCase()));
+    if (cleanList.length !== list.length) {
+      this.saveSellers(cleanList);
+      return cleanList;
     }
     return list;
   },
@@ -446,6 +444,7 @@ export const marketplaceStore = {
       id: newId,
       name: seller.name || 'New Seller',
       email: seller.email || '',
+      password: seller.password || '',
       storeName: seller.storeName || 'New Store',
       phone: seller.phone || '',
       status: seller.status || 'Active',
@@ -1448,25 +1447,14 @@ export const marketplaceStore = {
 
   // ATTRIBUTES & VARIANTS PERSISTENCE
   getAttributes(): any[] {
-    const DEFAULT_ATTRIBUTES = [
-      { id: '1', name: 'Material', values: ['Cotton', 'Polyester', 'Leather', 'Wood'] },
-      { id: '2', name: 'Display Type', values: ['OLED', 'LCD', 'AMOLED'] },
-      { id: '3', name: 'Storage Capacity', values: ['64GB', '128GB', '256GB', '512GB'] },
-    ];
-    return getStored('attributes', DEFAULT_ATTRIBUTES);
+    return getStored('attributes', []);
   },
   saveAttributes(list: any[]): void {
     setStored('attributes', list);
   },
 
   getVariants(): any[] {
-    const DEFAULT_VARIANTS = [
-      { id: '1', name: 'Cloth Sizes', type: 'size', values: [{ id: 'v1', label: 'XS' }, { id: 'v2', label: 'S' }, { id: 'v3', label: 'M' }, { id: 'v4', label: 'L' }, { id: 'v5', label: 'XL' }] },
-      { id: '2', name: 'Colors', type: 'color', values: [{ id: 'c1', label: 'Red', value: '#ef4444' }, { id: 'c2', label: 'Blue', value: '#3b82f6' }, { id: 'c3', label: 'Black', value: '#0f172a' }] },
-      { id: '3', name: 'Shoe Sizes (UK)', type: 'size', values: [{ id: 's1', label: '6' }, { id: 's2', label: '7' }, { id: 's3', label: '8' }, { id: 's4', label: '9' }, { id: 's5', label: '10' }] },
-      { id: '4', name: 'Weight', type: 'weight', values: [{ id: 'w1', label: '250g' }, { id: 'w2', label: '500g' }, { id: 'w3', label: '1kg' }] }
-    ];
-    return getStored('variants', DEFAULT_VARIANTS);
+    return getStored('variants', []);
   },
   saveVariants(list: any[]): void {
     setStored('variants', list);
@@ -1474,14 +1462,11 @@ export const marketplaceStore = {
 
   getCustomers(): any[] {
     const list = getStored('customers', INITIAL_CUSTOMERS);
-    if (!list || list.length === 0) {
-      const DEFAULT_CUSTOMERS = [
-        { id: 'CUST-390', name: 'Alok Nath', email: 'alok@example.com', phone: '9821054321', address: 'Civil Lines, Sultanpur, UP', orders: 12, walletBalance: 500, referralCode: 'ALOK200', status: 'Active' },
-        { id: 'CUST-391', name: 'Vikas Patel', email: 'vikas@example.com', phone: '9876543210', address: 'Golaganj, Sultanpur, UP', orders: 5, walletBalance: 200, referralCode: 'VIKAS200', status: 'Active' },
-        { id: 'CUST-392', name: 'Priya Desai', email: 'priya@example.com', phone: '9123456789', address: 'Super Market, Sultanpur, UP', orders: 8, walletBalance: 350, referralCode: 'PRIYA200', status: 'Active' }
-      ];
-      this.saveCustomers(DEFAULT_CUSTOMERS);
-      return DEFAULT_CUSTOMERS;
+    const MOCK_CUST_EMAILS = ['alok@example.com', 'vikas@example.com', 'priya@example.com'];
+    const cleanList = list.filter(c => c.email && !MOCK_CUST_EMAILS.includes(c.email.toLowerCase()));
+    if (cleanList.length !== list.length) {
+      this.saveCustomers(cleanList);
+      return cleanList;
     }
     return list;
   },
@@ -1522,10 +1507,7 @@ export const marketplaceStore = {
     setStored('referralConfig', config);
   },
   getReferralsList(): any[] {
-    const DEFAULT_REFERRALS = [
-      { id: 'REF-101', referrerRole: 'User', referrerId: 'CUST-390', referrerName: 'Alok Nath', referrerPhone: '9821054321', refereeRole: 'User', refereeId: 'CUST-391', refereeName: 'Vikas Patel', refereePhone: '9876543210', date: '24 Jul 2026', status: 'Completed', earned: '₹400.00' },
-    ];
-    return getStored('referralsList', DEFAULT_REFERRALS);
+    return getStored('referralsList', []);
   },
   saveReferralsList(list: any[]): void {
     setStored('referralsList', list);
@@ -1533,7 +1515,14 @@ export const marketplaceStore = {
 
   // VENDOR REGISTRATIONS
   getVendorRegistrations(): VendorRegistration[] {
-    return getStored('vendorRegistrations', INITIAL_VENDOR_REGISTRATIONS);
+    const list = getStored('vendorRegistrations', INITIAL_VENDOR_REGISTRATIONS);
+    const MOCK_EMAILS = ['alok@citysquare.com', 'ravi@siliconvalley.com', 'suhani@freshorganic.com', 'amit@groceryhub.com'];
+    const cleanList = list.filter(v => v.email && !MOCK_EMAILS.includes(v.email.toLowerCase()));
+    if (cleanList.length !== list.length) {
+      this.saveVendorRegistrations(cleanList);
+      return cleanList;
+    }
+    return list;
   },
   saveVendorRegistrations(list: VendorRegistration[]): void {
     setStored('vendorRegistrations', list);
@@ -1548,6 +1537,7 @@ export const marketplaceStore = {
       businessName: reg.businessName || reg.name || 'New Business',
       phone: reg.phone || '',
       email: reg.email || '',
+      password: reg.password || '',
       date: today,
       status: reg.status || 'Pending',
       plan: reg.plan || 'Standard Plan',
@@ -1640,11 +1630,7 @@ export const marketplaceStore = {
   },
 
   getWalletTransactions(): any[] {
-    const INITIAL_WALLET_TXNS = [
-      { id: 'WTXN-801', date: '24 Jul 2026, 10:30 AM', customer: 'Alok Nath', phone: '9821054321', desc: 'Welcome Bonus Credited', amount: '₹200.00', type: 'Credit', closingBal: '₹500.00' },
-      { id: 'WTXN-802', date: '23 Jul 2026, 04:15 PM', customer: 'Vikas Patel', phone: '9876543210', desc: 'Referral Bonus Credited', amount: '₹200.00', type: 'Credit', closingBal: '₹200.00' }
-    ];
-    return getStored('walletTransactions', INITIAL_WALLET_TXNS);
+    return getStored('walletTransactions', []);
   },
   saveWalletTransactions(list: any[]): void {
     setStored('walletTransactions', list);

@@ -1212,6 +1212,8 @@ export const marketplaceStore = {
         customer_name: order.customer,
         phone_number: order.phone || null,
         store_name: order.store,
+        subtotal: numAmt + numDiscount,
+        tax_amount: Number((order as any).tax) || 0,
         total_amount: numAmt,
         discount_amount: numDiscount,
         discount_reason: order.discountReason || null,
@@ -1278,6 +1280,7 @@ export const marketplaceStore = {
         full_name: customer.name || 'Customer',
         mobile_number: customer.phone || '',
         email: customer.email || `${customer.id || Date.now()}@customer.local`,
+        password_hash: customer.password_hash || customer.password || 'customer_pass_default',
         street_area: customer.address || '',
         wallet_balance: Number(customer.walletBalance) || 0,
         referral_code: customer.referralCode || ''

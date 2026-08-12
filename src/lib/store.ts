@@ -849,7 +849,22 @@ export const marketplaceStore = {
             stock: row.total_allowed_qty || 50
           };
         });
-        setStored('products', mapped);
+
+        const currentLocal = getStored<Product[]>('products', []);
+        const byKey = new Map<string, Product>();
+
+        for (const item of mapped) {
+          byKey.set(String(item.id), item);
+        }
+        for (const item of currentLocal) {
+          if (!byKey.has(String(item.id))) {
+            byKey.set(String(item.id), item);
+          }
+        }
+
+        const merged = Array.from(byKey.values());
+        setStored('products', merged);
+        this.dispatchAllEvents();
       }
     } catch (err) {
       if (!isAuthOrApiKeyError(err)) console.error('Failed to sync products from Supabase:', err);
@@ -884,22 +899,23 @@ export const marketplaceStore = {
       };
 
       const isUUID = typeof product.id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(product.id);
+
       if (isUUID) {
         payload.id = product.id;
-      }
-
-      const { data, error } = await supabase
-        .from('products')
-        .upsert(payload, { onConflict: isUUID ? 'id' : undefined })
-        .select();
-
-      if (error) {
-        if (!isAuthOrApiKeyError(error)) console.error('Supabase save product error:', error.message);
-      } else if (data && data[0] && !isUUID) {
-        const realId = data[0].id;
-        const currentList = this.getProducts();
-        const updated = currentList.map(p => String(p.id) === String(product.id) ? { ...p, id: realId } : p);
-        this.saveProducts(updated);
+        const { error } = await supabase.from('products').upsert(payload, { onConflict: 'id' });
+        if (error && !isAuthOrApiKeyError(error)) {
+          console.error('Supabase update product error:', error.message);
+        }
+      } else {
+        const { data, error } = await supabase.from('products').insert(payload).select();
+        if (error && !isAuthOrApiKeyError(error)) {
+          console.error('Supabase insert product error:', error.message);
+        } else if (data && data[0]) {
+          const realId = data[0].id;
+          const currentList = this.getProducts();
+          const updated = currentList.map(p => String(p.id) === String(product.id) ? { ...p, id: realId } : p);
+          this.saveProducts(updated);
+        }
       }
     } catch (err) {
       if (!isAuthOrApiKeyError(err)) console.error('Failed to save product to Supabase:', err);

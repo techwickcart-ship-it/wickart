@@ -163,8 +163,59 @@ export function VendorRegistrationPage() {
     reader.readAsDataURL(file);
   };
 
-  const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length - 1));
-  const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 0));
+  const [stepError, setStepError] = useState('');
+
+  const nextStep = () => {
+    setStepError('');
+    if (currentStep === 0) {
+      const name = (formData.fullName || formData.ownerName || '').trim();
+      const mobile = (formData.mobile || '').trim();
+      const email = (formData.email || '').trim();
+      const pwd = (formData.password || '').trim();
+
+      if (!name || name.length < 2) {
+        setStepError('Please enter your Full Name / Owner Name (at least 2 characters).');
+        return;
+      }
+      if (!mobile || mobile.replace(/\D/g, '').length < 10) {
+        setStepError('Please enter a valid 10-digit Mobile Number.');
+        return;
+      }
+      if (!email || !email.includes('@')) {
+        setStepError('Please enter a valid Email Address.');
+        return;
+      }
+      if (!pwd || pwd.length < 6) {
+        setStepError('Password must be at least 6 characters.');
+        return;
+      }
+      if (formData.password !== formData.confirmPassword) {
+        setStepError('Password and Confirm Password do not match.');
+        return;
+      }
+    } else if (currentStep === 1) {
+      const storeName = (formData.storeName || formData.legalName || '').trim();
+      if (!storeName) {
+        setStepError('Please enter your Store Display Name or Legal Business Name.');
+        return;
+      }
+    } else if (currentStep === 2) {
+      const addr = (formData.address1 || '').trim();
+      const city = (formData.city || '').trim();
+      const pincode = (formData.postalCode || '').trim();
+      if (!addr || !city || !pincode) {
+        setStepError('Please enter your Store Address, City, and PIN Code.');
+        return;
+      }
+    }
+
+    setCurrentStep(prev => Math.min(prev + 1, STEPS.length - 1));
+  };
+
+  const prevStep = () => {
+    setStepError('');
+    setCurrentStep(prev => Math.max(prev - 1, 0));
+  };
 
   if (isSubmitted) {
     return (
@@ -269,6 +320,13 @@ export function VendorRegistrationPage() {
         </CardHeader>
 
         <CardContent className="flex-1 p-6 md:p-8">
+          {stepError && (
+            <div className="mb-6 p-4 bg-red-50 text-red-700 border border-red-200 rounded-xl text-sm font-semibold flex items-center gap-2 animate-in fade-in">
+              <span className="w-2 h-2 rounded-full bg-red-600 shrink-0"></span>
+              <span>{stepError}</span>
+            </div>
+          )}
+
           {/* STEP 1: Account Creation */}
           {currentStep === 0 && (
             <div className="space-y-6 max-w-2xl">
@@ -757,11 +815,43 @@ export function VendorRegistrationPage() {
             <button 
               type="button"
               onClick={() => {
+                setStepError('');
+                const name = (formData.fullName || formData.ownerName || '').trim();
+                const mobile = (formData.mobile || '').trim();
+                const email = (formData.email || '').trim();
+                const storeName = (formData.storeName || formData.legalName || '').trim();
+                const signature = (formData.signature || '').trim();
+
+                if (!name) {
+                  setStepError('Please enter your Full Name / Owner Name before submitting.');
+                  setCurrentStep(0);
+                  return;
+                }
+                if (!mobile || mobile.replace(/\D/g, '').length < 10) {
+                  setStepError('Please enter a valid 10-digit Mobile Number before submitting.');
+                  setCurrentStep(0);
+                  return;
+                }
+                if (!email || !email.includes('@')) {
+                  setStepError('Please enter a valid Email Address before submitting.');
+                  setCurrentStep(0);
+                  return;
+                }
+                if (!storeName) {
+                  setStepError('Please enter your Store Display Name or Legal Business Name.');
+                  setCurrentStep(1);
+                  return;
+                }
+                if (!signature) {
+                  setStepError('Please type your Full Name as Digital Signature to accept terms and submit.');
+                  return;
+                }
+
                 const reg = marketplaceStore.addVendorRegistration({
-                  name: formData.fullName || formData.ownerName || 'New Vendor',
-                  businessName: formData.storeName || formData.legalName || 'New Business',
-                  phone: formData.mobile || '',
-                  email: formData.email || '',
+                  name: name,
+                  businessName: storeName,
+                  phone: mobile,
+                  email: email,
                   plan: selectedCommissionPlan,
                   category: formData.category,
                   city: formData.city,
@@ -788,8 +878,8 @@ export function VendorRegistrationPage() {
                 if (formData.referralCode && formData.referralCode.trim()) {
                   marketplaceStore.processReferralCode(
                     formData.referralCode.trim(),
-                    formData.storeName || formData.fullName || 'New Vendor Store',
-                    formData.mobile || '9800000000',
+                    storeName,
+                    mobile,
                     true,
                     reg.id
                   );

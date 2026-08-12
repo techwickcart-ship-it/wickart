@@ -10,41 +10,78 @@ export function CustomerRegistrationPage() {
   const [fullName, setFullName] = useState('');
   const [mobile, setMobile] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [houseNo, setHouseNo] = useState('');
   const [street, setStreet] = useState('');
+  const [landmark, setLandmark] = useState('');
   const [city, setCity] = useState('');
+  const [stateName, setStateName] = useState('Uttar Pradesh');
+  const [pincode, setPincode] = useState('');
+  const [referralCodeInput, setReferralCodeInput] = useState('');
   const [registerAsVendor, setRegisterAsVendor] = useState(false);
   const [loginCredential, setLoginCredential] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
 
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     return localStorage.getItem('isCustomerLoggedIn') === 'true';
   });
   const [savedName, setSavedName] = useState(() => {
-    return localStorage.getItem('customerName') || 'John Doe';
+    return localStorage.getItem('customerName') || 'Customer User';
   });
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
-    const nameToSave = fullName.trim() || 'John Doe';
+    setErrorMsg('');
+
+    if (!fullName.trim() || fullName.trim().length < 2) {
+      setErrorMsg('Please enter your Full Name (at least 2 characters). Account cannot be created without details.');
+      return;
+    }
+    if (!mobile.trim() || mobile.trim().length < 10) {
+      setErrorMsg('Please enter a valid 10-digit Mobile Number. Account cannot be created without details.');
+      return;
+    }
+    if (!email.trim() || !email.includes('@')) {
+      setErrorMsg('Please enter a valid Email Address.');
+      return;
+    }
+    if (!password || password.length < 6) {
+      setErrorMsg('Password must be at least 6 characters long.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setErrorMsg('Password and Confirm Password do not match.');
+      return;
+    }
+    if (!houseNo.trim() || !street.trim() || !city.trim() || !pincode.trim()) {
+      setErrorMsg('Please fill in your complete delivery address (House No, Street, City, and PIN Code).');
+      return;
+    }
+
+    const nameToSave = fullName.trim();
     localStorage.setItem('isCustomerLoggedIn', 'true');
     localStorage.setItem('customerName', nameToSave);
 
+    const fullAddress = [houseNo.trim(), street.trim(), landmark.trim(), city.trim(), stateName.trim(), pincode.trim()].filter(Boolean).join(', ');
+
     marketplaceStore.addCustomer({
       name: nameToSave,
-      email: email.trim() || `${nameToSave.toLowerCase().replace(/\s+/g, '')}@example.com`,
-      phone: mobile.trim() || '+91 9000000000',
-      address: [houseNo, street, city].filter(Boolean).join(', ') || 'India'
+      email: email.trim(),
+      phone: mobile.trim(),
+      address: fullAddress,
+      referralCode: referralCodeInput.trim() || undefined
     });
 
     if (registerAsVendor) {
       marketplaceStore.addVendorRegistration({
         name: nameToSave,
         businessName: `${nameToSave}'s Store`,
-        email: email.trim() || `${nameToSave.toLowerCase().replace(/\s+/g, '')}@example.com`,
-        phone: mobile.trim() || '+91 9000000000',
-        city: city || 'Sultanpur',
-        address: [houseNo, street, city].filter(Boolean).join(', '),
+        email: email.trim(),
+        phone: mobile.trim(),
+        city: city.trim(),
+        address: fullAddress,
         status: 'Pending'
       });
     }
@@ -55,17 +92,30 @@ export function CustomerRegistrationPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const nameToSave = loginCredential.includes('@') 
-      ? loginCredential.split('@')[0].toUpperCase() 
-      : (loginCredential || 'Customer');
+    setErrorMsg('');
+
+    if (!loginCredential.trim()) {
+      setErrorMsg('Please enter your Mobile Number or Email Address.');
+      return;
+    }
+    if (!loginPassword.trim()) {
+      setErrorMsg('Please enter your Password.');
+      return;
+    }
+
+    const cleanCred = loginCredential.trim();
+    const nameToSave = cleanCred.includes('@') 
+      ? cleanCred.split('@')[0].toUpperCase() 
+      : cleanCred;
+
     localStorage.setItem('isCustomerLoggedIn', 'true');
     localStorage.setItem('customerName', nameToSave);
     setSavedName(nameToSave);
 
     marketplaceStore.addCustomer({
       name: nameToSave,
-      email: loginCredential.includes('@') ? loginCredential : `${nameToSave.toLowerCase().replace(/\s+/g, '')}@example.com`,
-      phone: loginCredential.includes('@') ? '+91 9000000000' : loginCredential
+      email: cleanCred.includes('@') ? cleanCred : `${cleanCred}@customer.local`,
+      phone: cleanCred.includes('@') ? '' : cleanCred
     });
 
     setIsLoggedIn(true);
@@ -163,6 +213,13 @@ export function CustomerRegistrationPage() {
         </div>
       </div>
 
+      {errorMsg && (
+        <div className="p-4 bg-red-50 text-red-700 border border-red-200 rounded-xl text-sm font-semibold flex items-center gap-2 animate-in fade-in">
+          <span className="w-2 h-2 rounded-full bg-red-600 shrink-0"></span>
+          <span>{errorMsg}</span>
+        </div>
+      )}
+
       {mode === 'login' ? (
         <Card className="shadow-lg border-slate-200/60 font-sans max-w-md mx-auto">
           <CardContent className="p-8">
@@ -197,7 +254,7 @@ export function CustomerRegistrationPage() {
               </div>
               <button 
                 type="submit" 
-                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
+                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span>Sign In as Customer</span>
                 <ArrowRight className="w-4 h-4" />
@@ -206,7 +263,7 @@ export function CustomerRegistrationPage() {
             <div className="mt-6 text-center">
               <p className="text-sm text-slate-500">
                 Don't have an account?{' '}
-                <button onClick={() => setMode('register')} className="text-blue-600 font-bold hover:underline bg-transparent border-0 cursor-pointer">
+                <button onClick={() => { setMode('register'); setErrorMsg(''); }} className="text-blue-600 font-bold hover:underline bg-transparent border-0 cursor-pointer">
                   Register Now
                 </button>
               </p>
@@ -240,16 +297,16 @@ export function CustomerRegistrationPage() {
                          <input required type="tel" value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="+91 9000000000" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
                       </div>
                       <div>
-                         <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email Address</label>
-                         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="john@example.com" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
+                         <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email Address <span className="text-red-500">*</span></label>
+                         <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="john@example.com" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
                       </div>
                       <div>
                          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Password <span className="text-red-500">*</span></label>
-                         <input required type="password" placeholder="••••••••" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
+                         <input required type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
                       </div>
                       <div>
                          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Confirm Password <span className="text-red-500">*</span></label>
-                         <input required type="password" placeholder="••••••••" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
+                         <input required type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
                       </div>
                    </div>
                 </div>
@@ -268,7 +325,7 @@ export function CustomerRegistrationPage() {
                       </div>
                       <div className="col-span-1 md:col-span-2">
                          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Landmark</label>
-                         <input type="text" placeholder="Near XYZ Hospital" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
+                         <input type="text" value={landmark} onChange={(e) => setLandmark(e.target.value)} placeholder="Near XYZ Hospital" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
                       </div>
                       <div>
                          <label className="block text-sm font-semibold text-slate-700 mb-1.5">City <span className="text-red-500">*</span></label>
@@ -276,11 +333,11 @@ export function CustomerRegistrationPage() {
                       </div>
                       <div>
                          <label className="block text-sm font-semibold text-slate-700 mb-1.5">State <span className="text-red-500">*</span></label>
-                         <input required type="text" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
+                         <input required type="text" value={stateName} onChange={(e) => setStateName(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
                       </div>
                       <div>
                          <label className="block text-sm font-semibold text-slate-700 mb-1.5">PIN Code <span className="text-red-500">*</span></label>
-                         <input required type="text" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
+                         <input required type="text" value={pincode} onChange={(e) => setPincode(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
                       </div>
                    </div>
                 </div>
@@ -298,7 +355,7 @@ export function CustomerRegistrationPage() {
                    </div>
                    <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-1.5">Referral Code (Optional)</label>
-                      <input type="text" placeholder="e.g. FRIEND200" className="w-full md:w-1/2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all uppercase" />
+                      <input type="text" value={referralCodeInput} onChange={(e) => setReferralCodeInput(e.target.value)} placeholder="e.g. FRIEND200" className="w-full md:w-1/2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all uppercase" />
                    </div>
                 </div>
 

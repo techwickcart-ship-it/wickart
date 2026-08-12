@@ -18,11 +18,24 @@ export function VendorLoginPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    setSuccessMsg('');
+
     const cleanCredential = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
+
+    if (!cleanCredential) {
+      setError('Please enter your Registered Email Address or Mobile Number.');
+      return;
+    }
+
+    if (!cleanPassword) {
+      setError('Please enter your Account Password.');
+      return;
+    }
 
     if (cleanCredential === 'pending') {
       setError('Your vendor account is pending Admin approval. Vendors can only log in after an Administrator approves the account in the Admin Panel.');
-      setSuccessMsg('');
       return;
     }
 
@@ -45,13 +58,11 @@ export function VendorLoginPage() {
 
       if (status === 'Pending') {
         setError('Your vendor account is currently pending Admin approval. Vendors can only log in after an Administrator approves the account in the Admin Panel.');
-        setSuccessMsg('');
         return;
       }
 
       if (status === 'Suspended' || matchedReg?.status === 'Rejected') {
         setError('Your vendor account has been rejected or suspended. Please contact platform support.');
-        setSuccessMsg('');
         return;
       }
 
@@ -66,19 +77,7 @@ export function VendorLoginPage() {
       return;
     }
 
-    // New custom email trying to login directly
-    // Register account as User and Vendor with Pending status
-    const storeName = cleanCredential.includes('@') ? cleanCredential.split('@')[0].toUpperCase() + ' Store' : 'New Seller Store';
-    marketplaceStore.addVendorRegistration({
-      name: cleanCredential.includes('@') ? cleanCredential.split('@')[0] : 'New Vendor',
-      businessName: storeName,
-      email: cleanCredential,
-      phone: '+91 9000000000',
-      status: 'Pending'
-    });
-
-    setError('Account registered as User & Vendor! Your account is currently pending Admin approval. Vendors can only log in after an Administrator approves the account in the Admin Panel.');
-    setSuccessMsg('');
+    setError('Vendor account not found. Please register your store first using the Vendor Registration form.');
   };
 
   const handleForgotPassword = (e: React.MouseEvent) => {

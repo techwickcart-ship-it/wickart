@@ -58,15 +58,16 @@ export function VendorLoginPage() {
       return;
     }
 
-    const status = matchedSeller ? matchedSeller.status : (matchedReg?.status === 'Approved' ? 'Active' : matchedReg?.status || 'Pending');
+    const isSellerApproved = Boolean(matchedSeller && (matchedSeller.status === 'Active' || (matchedSeller.status as any) === 'Approved'));
+    const isRegApproved = Boolean(matchedReg && matchedReg.status === 'Approved');
+    const isApproved = isSellerApproved || isRegApproved;
 
-    if (status === 'Pending') {
-      setError('Your vendor account is currently pending Admin approval. Vendors can only log in after an Administrator approves the account in the Admin Panel.');
-      return;
-    }
-
-    if (status === 'Suspended' || matchedReg?.status === 'Rejected') {
-      setError('Your vendor account has been rejected or suspended. Please contact platform support.');
+    if (!isApproved) {
+      if (matchedSeller?.status === 'Suspended' || matchedReg?.status === 'Rejected') {
+        setError('Your vendor account has been rejected or suspended. Please contact platform support.');
+      } else {
+        setError('Your vendor account is currently pending Admin approval. Vendors can only log in after an Administrator approves the account in the Admin Panel.');
+      }
       return;
     }
 
@@ -90,6 +91,7 @@ export function VendorLoginPage() {
 
     localStorage.setItem('activeSellerId', targetSellerId);
     localStorage.setItem('activeSellerStoreName', targetStoreName);
+    localStorage.setItem('sellerAuth', 'true');
     sessionStorage.setItem('sellerAuth', 'true');
     navigateTo('/seller');
   };

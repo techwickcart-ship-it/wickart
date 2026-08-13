@@ -53,7 +53,7 @@ export function SellerPanel() {
 
   const { activeSellerStoreName, activeSellerId, sellers, changeSeller } = useActiveSellerStore();
 
-  const isSellerAuth = sessionStorage.getItem('sellerAuth') === 'true';
+  const isSellerAuth = localStorage.getItem('sellerAuth') === 'true' || sessionStorage.getItem('sellerAuth') === 'true';
 
   const orders = useMarketplaceData('orders', () => marketplaceStore.getOrders());
   const pendingOrdersCount = orders.filter(o => o.store === activeSellerStoreName && o.status === 'Pending').length;
@@ -163,6 +163,7 @@ export function SellerPanel() {
             onClick={() => {
               localStorage.removeItem('activeSellerId');
               localStorage.removeItem('activeSellerStoreName');
+              localStorage.removeItem('sellerAuth');
               sessionStorage.removeItem('sellerAuth');
               navigateTo('/vendor-login');
             }}

@@ -140,7 +140,40 @@ const INITIAL_SELLERS: Seller[] = [];
 const INITIAL_COUPONS: Coupon[] = [];
 const INITIAL_DELIVERY_PARTNERS: DeliveryPartner[] = [];
 
-const INITIAL_WAREHOUSES: Warehouse[] = [];
+const INITIAL_WAREHOUSES: Warehouse[] = [
+  {
+    id: 'WH-001',
+    name: 'Sultanpur Central Logistics Hub',
+    code: 'WH-SLN-01',
+    managerName: 'Rajesh Sharma',
+    phone: '+91 9821012345',
+    email: 'wh.central@wikcart.in',
+    address: 'Plot 12, Civil Lines Industrial Area',
+    city: 'Sultanpur',
+    state: 'Uttar Pradesh',
+    pincode: '228001',
+    capacitySqFt: 25000,
+    occupancyPercentage: 40,
+    isFulfillmentCenter: true,
+    status: 'Active'
+  },
+  {
+    id: 'WH-002',
+    name: 'Amhat Express Depot',
+    code: 'WH-SLN-02',
+    managerName: 'Vikas Verma',
+    phone: '+91 9876543210',
+    email: 'depot.amhat@wikcart.in',
+    address: 'Building 4B, Amhat Bypass Road',
+    city: 'Sultanpur',
+    state: 'Uttar Pradesh',
+    pincode: '228001',
+    capacitySqFt: 12000,
+    occupancyPercentage: 25,
+    isFulfillmentCenter: false,
+    status: 'Active'
+  }
+];
 
 export interface VendorRegistration {
   id: string;
@@ -433,6 +466,11 @@ export const marketplaceStore = {
   },
   saveSellers(sellers: Seller[]): void {
     setStored('sellers', sellers);
+    for (const seller of sellers) {
+      if (seller.email || seller.phone) {
+        this.saveVendorToSupabase(seller).catch(() => {});
+      }
+    }
   },
   addSeller(seller: Partial<Seller>): Seller {
     const list = this.getSellers();
@@ -1078,9 +1116,10 @@ export const marketplaceStore = {
           id: v.id,
           name: v.full_name || v.business_owner_name || 'Vendor Owner',
           email: v.email || '',
+          password: v.password_hash && v.password_hash !== 'hashed_password_default' ? v.password_hash : 'pass123',
           storeName: v.store_display_name || v.legal_business_name || 'Vendor Store',
           phone: v.mobile_number || '',
-          status: v.status === 'Approved' ? 'Active' : (v.status || 'Active'),
+          status: (v.status === 'Approved' || v.status === 'Active') ? 'Active' : (v.status === 'Rejected' || v.status === 'Suspended' ? 'Suspended' : 'Pending'),
           orders: 0,
           revenue: '₹0.00',
           rating: 4.8,
@@ -1094,19 +1133,38 @@ export const marketplaceStore = {
         const currentLocal = getStored<Seller[]>('sellers', []);
         const byKey = new Map<string, Seller>();
 
-        for (const item of mapped) {
-          const key = (item.email || item.phone || String(item.id)).toLowerCase();
-          byKey.set(key, item);
-        }
         for (const item of currentLocal) {
           const key = (item.email || item.phone || String(item.id)).toLowerCase();
-          if (!byKey.has(key)) {
-            byKey.set(key, item);
+          if (key) byKey.set(key, item);
+        }
+
+        for (const remoteItem of mapped) {
+          const key = (remoteItem.email || remoteItem.phone || String(remoteItem.id)).toLowerCase();
+          if (!key) continue;
+          const localItem = byKey.get(key);
+          if (localItem) {
+            const isLocalActive = localItem.status === 'Active' || (localItem as any).status === 'Approved';
+            const isRemoteActive = remoteItem.status === 'Active' || (remoteItem as any).status === 'Approved';
+            const finalStatus: 'Active' | 'Pending' | 'Suspended' = (isLocalActive || isRemoteActive) ? 'Active' : (remoteItem.status === 'Suspended' ? 'Suspended' : 'Pending');
+
+            const merged: Seller = {
+              ...localItem,
+              ...remoteItem,
+              password: localItem.password || remoteItem.password,
+              status: finalStatus
+            };
+            byKey.set(key, merged);
+
+            if (isLocalActive && !isRemoteActive) {
+              this.saveVendorToSupabase(merged).catch(() => {});
+            }
+          } else {
+            byKey.set(key, remoteItem);
           }
         }
 
-        const merged = Array.from(byKey.values());
-        setStored('sellers', merged);
+        const mergedList = Array.from(byKey.values());
+        setStored('sellers', mergedList);
         this.dispatchAllEvents();
       }
     } catch (err) {
@@ -1118,6 +1176,10 @@ export const marketplaceStore = {
     if (!supabase) return;
     try {
       const s = seller as any;
+      const isApprovedOrActive = s.status === 'Approved' || s.status === 'Active';
+      const isRejectedOrSuspended = s.status === 'Rejected' || s.status === 'Suspended';
+      const payloadStatus = isApprovedOrActive ? 'Approved' : isRejectedOrSuspended ? 'Rejected' : 'Pending';
+
       const payload: any = {
         full_name: s.businessOwnerName || s.name || 'Vendor Owner',
         business_owner_name: s.businessOwnerName || s.name || 'Vendor Owner',
@@ -1137,7 +1199,7 @@ export const marketplaceStore = {
         bank_name: s.bankName || 'HDFC Bank',
         account_number: s.accountNumber || '0000000000',
         ifsc_code: s.ifscCode || 'HDFC0000001',
-        status: s.status === 'Approved' ? 'Approved' : s.status === 'Rejected' ? 'Rejected' : 'Pending'
+        status: payloadStatus
       };
 
       const isUUID = typeof s.id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s.id);

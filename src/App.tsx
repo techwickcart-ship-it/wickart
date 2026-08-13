@@ -339,8 +339,10 @@ export default function App() {
               <OrdersPage />
             ) : activePage === 'Dispatch Management' ? (
               <DispatchManagementPage />
-            ) : activePage === 'Warehouses' || activePage === 'Warehouses Management' ? (
+            ) : activePage === 'Warehouses' || activePage === 'Warehouses Management' || activePage === 'Manage Warehouses' ? (
               <WarehousesPage />
+            ) : activePage === 'Add Warehouse' ? (
+              <WarehousesPage initialOpenAddModal={true} />
             ) : activePage === 'Add Seller' ? (
               <AddSellerPage />
             ) : activePage === 'Add Customer' ? (

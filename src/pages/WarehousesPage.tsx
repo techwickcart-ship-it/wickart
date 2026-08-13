@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '../components/ui/Card';
 import { 
   Building2, 
@@ -23,7 +23,11 @@ import {
 } from 'lucide-react';
 import { marketplaceStore, useMarketplaceData, Warehouse } from '../lib/store';
 
-export function WarehousesPage() {
+interface WarehousesPageProps {
+  initialOpenAddModal?: boolean;
+}
+
+export function WarehousesPage({ initialOpenAddModal = false }: WarehousesPageProps) {
   const warehouses = useMarketplaceData('warehouses', () => marketplaceStore.getWarehouses());
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -52,6 +56,12 @@ export function WarehousesPage() {
     isFulfillmentCenter: true,
     status: 'Active' as 'Active' | 'Inactive' | 'Maintenance'
   });
+
+  useEffect(() => {
+    if (initialOpenAddModal) {
+      handleOpenAddModal();
+    }
+  }, [initialOpenAddModal]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -101,8 +111,8 @@ export function WarehousesPage() {
 
   const handleSaveWarehouse = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim() || !formData.address.trim()) {
-      alert('Please fill in required fields: Warehouse Name and Address');
+    if (!formData.name.trim() || !formData.address.trim() || !formData.phone.trim()) {
+      alert('Please fill in required fields: Warehouse Name, Full Address, and Contact Phone Number');
       return;
     }
 
@@ -541,10 +551,11 @@ export function WarehousesPage() {
                 {/* Phone */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Contact Phone Number
+                    Contact Phone Number <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
+                    required
                     placeholder="e.g. +91 9821012345"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}

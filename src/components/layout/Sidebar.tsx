@@ -38,7 +38,7 @@ const navGroups = [
       { name: 'Orders', icon: ShoppingCart },
       { name: 'Return Requests', icon: RotateCcw, hasSubmenu: true, subItems: ['Manage Return Requests', 'Reasons For return'] },
       { name: 'Dispatch Management', icon: Truck },
-      { name: 'Warehouses', icon: Building2 },
+      { name: 'Warehouses', icon: Building2, hasSubmenu: true, subItems: ['Manage Warehouses', 'Add Warehouse'] },
     ]
   },
   {

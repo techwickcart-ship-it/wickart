@@ -115,6 +115,22 @@ export interface DeliveryPartner {
   joinedDate: string;
 }
 
+export interface DeliveryZone {
+  id: string;
+  name: string;
+  code: string;
+  city: string;
+  state: string;
+  pincodes: string[];
+  areas: string;
+  deliveryFee: number;
+  minOrderAmount: number;
+  estimatedTime: string;
+  assignedRidersCount: number;
+  status: 'Active' | 'Inactive';
+  description?: string;
+}
+
 export interface Warehouse {
   id: string;
   name: string;
@@ -139,6 +155,54 @@ const INITIAL_ORDERS: Order[] = [];
 const INITIAL_SELLERS: Seller[] = [];
 const INITIAL_COUPONS: Coupon[] = [];
 const INITIAL_DELIVERY_PARTNERS: DeliveryPartner[] = [];
+
+const INITIAL_DELIVERY_ZONES: DeliveryZone[] = [
+  {
+    id: 'ZONE-001',
+    name: 'Sultanpur City Center & Civil Lines',
+    code: 'ZONE-SLN-01',
+    city: 'Sultanpur',
+    state: 'Uttar Pradesh',
+    pincodes: ['228001'],
+    areas: 'Civil Lines, Golaghat, Chowk, Bus Station, Railway Colony',
+    deliveryFee: 0,
+    minOrderAmount: 199,
+    estimatedTime: '15 - 30 Mins',
+    assignedRidersCount: 8,
+    status: 'Active',
+    description: 'Primary express delivery perimeter covering municipal core.'
+  },
+  {
+    id: 'ZONE-002',
+    name: 'Amhat & Bypass Extension',
+    code: 'ZONE-SLN-02',
+    city: 'Sultanpur',
+    state: 'Uttar Pradesh',
+    pincodes: ['228001', '228125'],
+    areas: 'Amhat, Bypass Road, Gauri Shankar Temple, KNIT Area',
+    deliveryFee: 25,
+    minOrderAmount: 299,
+    estimatedTime: '30 - 45 Mins',
+    assignedRidersCount: 4,
+    status: 'Active',
+    description: 'Outer ring suburban express corridor.'
+  },
+  {
+    id: 'ZONE-003',
+    name: 'Kurwar & Industrial Belt',
+    code: 'ZONE-SLN-03',
+    city: 'Sultanpur',
+    state: 'Uttar Pradesh',
+    pincodes: ['228155', '228001'],
+    areas: 'Kurwar Road, Industrial Estate, Sitakund, Dubeypur',
+    deliveryFee: 35,
+    minOrderAmount: 399,
+    estimatedTime: '45 - 60 Mins',
+    assignedRidersCount: 3,
+    status: 'Active',
+    description: 'Industrial and extended peri-urban sector.'
+  }
+];
 
 const INITIAL_WAREHOUSES: Warehouse[] = [
   {
@@ -1509,14 +1573,18 @@ export const marketplaceStore = {
       if (existingId) {
         const { data, error } = await supabase.from('customers').update(payload).eq('id', existingId).select();
         if (error) {
-          console.error('Supabase update customer error:', error.message);
+          if (!isAuthOrApiKeyError(error)) {
+            console.warn('Supabase update customer info:', error.message);
+          }
           return { success: false, error: error.message };
         }
         return { success: true, data: data?.[0] };
       } else {
         const { data, error } = await supabase.from('customers').insert([payload]).select();
         if (error) {
-          console.error('Supabase insert customer error:', error.message);
+          if (!isAuthOrApiKeyError(error)) {
+            console.warn('Supabase insert customer info:', error.message);
+          }
           return { success: false, error: error.message };
         } else if (data && data[0]) {
           const realId = data[0].id;
@@ -1528,7 +1596,9 @@ export const marketplaceStore = {
         return { success: true };
       }
     } catch (err: any) {
-      console.error('Failed to save customer to Supabase:', err);
+      if (!isAuthOrApiKeyError(err)) {
+        console.warn('Failed to save customer to Supabase:', err);
+      }
       return { success: false, error: err?.message || String(err) };
     }
   },
@@ -1771,6 +1841,49 @@ export const marketplaceStore = {
     const customer = this.addCustomer(cust);
     const supabaseResult = await this.saveCustomerToSupabase(customer);
     return { customer, supabaseResult };
+  },
+
+  updateCustomer(id: string, updatedFields: Partial<any>): any {
+    const list = this.getCustomers();
+    const index = list.findIndex(c => String(c.id) === String(id) || (c.email && updatedFields.email && c.email.toLowerCase() === updatedFields.email.toLowerCase()));
+    if (index !== -1) {
+      const updated = { ...list[index], ...updatedFields };
+      list[index] = updated;
+      this.saveCustomers(list);
+      this.saveCustomerToSupabase(updated).catch(err => {
+        if (!isAuthOrApiKeyError(err)) console.warn('Customer bg update error:', err);
+      });
+      return updated;
+    }
+    return null;
+  },
+
+  async deleteCustomer(id: string): Promise<void> {
+    const list = this.getCustomers();
+    const target = list.find(c => String(c.id) === String(id));
+    const filtered = list.filter(c => String(c.id) !== String(id));
+    this.saveCustomers(filtered);
+
+    if (target) {
+      this.deleteCustomerFromSupabase(target).catch(err => {
+        if (!isAuthOrApiKeyError(err)) console.warn('Supabase delete customer error:', err);
+      });
+    }
+  },
+
+  async deleteCustomerFromSupabase(customer: any): Promise<void> {
+    try {
+      const isUUID = typeof customer.id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(customer.id);
+      if (isUUID) {
+        await supabase.from('customers').delete().eq('id', customer.id);
+      } else if (customer.email && !customer.email.includes('@customer.local')) {
+        await supabase.from('customers').delete().eq('email', customer.email);
+      } else if (customer.phone) {
+        await supabase.from('customers').delete().eq('mobile_number', customer.phone);
+      }
+    } catch (err) {
+      if (!isAuthOrApiKeyError(err)) console.warn('Error deleting customer from Supabase:', err);
+    }
   },
 
   // REFERRAL CONFIG & LOGS
@@ -2273,6 +2386,60 @@ export const marketplaceStore = {
     this.saveWarehouses(filtered);
   },
 
+  // DELIVERY ZONES
+  getDeliveryZones(): DeliveryZone[] {
+    return getStored('deliveryZones', INITIAL_DELIVERY_ZONES);
+  },
+  saveDeliveryZones(zones: DeliveryZone[]): void {
+    setStored('deliveryZones', zones);
+  },
+  addDeliveryZone(zone: Partial<DeliveryZone>): DeliveryZone {
+    const list = this.getDeliveryZones();
+    const newNum = list.length + 1;
+    const newId = `ZONE-${String(newNum).padStart(3, '0')}`;
+    const codeNum = String(newNum).padStart(2, '0');
+    const pincodesList = Array.isArray(zone.pincodes)
+      ? zone.pincodes
+      : (typeof zone.pincodes === 'string' ? (zone.pincodes as string).split(',').map((s: string) => s.trim()).filter(Boolean) : ['228001']);
+
+    const item: DeliveryZone = {
+      id: newId,
+      name: zone.name || 'New Delivery Zone',
+      code: zone.code || `ZONE-SLN-${codeNum}`,
+      city: zone.city || 'Sultanpur',
+      state: zone.state || 'Uttar Pradesh',
+      pincodes: pincodesList.length > 0 ? pincodesList : ['228001'],
+      areas: zone.areas || 'City Center, Main Market',
+      deliveryFee: Number(zone.deliveryFee) || 0,
+      minOrderAmount: Number(zone.minOrderAmount) || 199,
+      estimatedTime: zone.estimatedTime || '20 - 40 Mins',
+      assignedRidersCount: Number(zone.assignedRidersCount) || 2,
+      status: zone.status || 'Active',
+      description: zone.description || 'Assigned local delivery sector.'
+    };
+    list.unshift(item);
+    this.saveDeliveryZones(list);
+    return item;
+  },
+  updateDeliveryZone(id: string, updatedFields: Partial<DeliveryZone>): DeliveryZone | null {
+    const list = this.getDeliveryZones();
+    const index = list.findIndex(z => String(z.id) === String(id));
+    if (index !== -1) {
+      if (updatedFields.pincodes && typeof updatedFields.pincodes === 'string') {
+        updatedFields.pincodes = (updatedFields.pincodes as string).split(',').map((s: string) => s.trim()).filter(Boolean);
+      }
+      list[index] = { ...list[index], ...updatedFields };
+      this.saveDeliveryZones(list);
+      return list[index];
+    }
+    return null;
+  },
+  deleteDeliveryZone(id: string): void {
+    const list = this.getDeliveryZones();
+    const filtered = list.filter(z => String(z.id) !== String(id));
+    this.saveDeliveryZones(filtered);
+  },
+
   // CLEAR & RESTORE DUMMY DATA METHODS
   isDummyDataRemoved(): boolean {
     return localStorage.getItem('dummyDataRemoved') === 'true';
@@ -2284,7 +2451,7 @@ export const marketplaceStore = {
       const keysToClear = [
         'products', 'orders', 'sellers', 'coupons', 'deliveryPartners',
         'categories', 'subcategories', 'withdrawals', 'customers',
-        'globalInventory', 'transactions', 'walletTransactions', 'vendorRegistrations', 'brands', 'warehouses'
+        'globalInventory', 'transactions', 'walletTransactions', 'vendorRegistrations', 'brands', 'warehouses', 'deliveryZones'
       ];
       keysToClear.forEach(k => localStorage.removeItem(k));
     } else {
@@ -2304,6 +2471,7 @@ export const marketplaceStore = {
       localStorage.setItem('vendorRegistrations', JSON.stringify([]));
       localStorage.setItem('brands', JSON.stringify([]));
       localStorage.setItem('warehouses', JSON.stringify([]));
+      localStorage.setItem('deliveryZones', JSON.stringify([]));
     }
     this.dispatchAllEvents();
   },
@@ -2313,7 +2481,7 @@ export const marketplaceStore = {
     const keysToClear = [
       'products', 'orders', 'sellers', 'coupons', 'deliveryPartners',
       'categories', 'subcategories', 'withdrawals', 'customers',
-      'globalInventory', 'transactions', 'walletTransactions', 'vendorRegistrations', 'brands', 'warehouses'
+      'globalInventory', 'transactions', 'walletTransactions', 'vendorRegistrations', 'brands', 'warehouses', 'deliveryZones'
     ];
     keysToClear.forEach(k => localStorage.removeItem(k));
     this.dispatchAllEvents();
@@ -2324,7 +2492,7 @@ export const marketplaceStore = {
       'products', 'orders', 'sellers', 'coupons', 'deliveryPartners',
       'categories', 'subcategories', 'withdrawals', 'customers',
       'globalInventory', 'transactions', 'walletTransactions', 'vendorRegistrations', 'brands',
-      'referralConfig', 'referralsList', 'warehouses'
+      'referralConfig', 'referralsList', 'warehouses', 'deliveryZones'
     ];
     keys.forEach(k => {
       window.dispatchEvent(new Event(`store_${k}_updated`));

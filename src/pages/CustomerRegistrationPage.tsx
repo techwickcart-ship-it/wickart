@@ -252,8 +252,8 @@ export function CustomerRegistrationPage() {
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
               <Database className="w-3.5 h-3.5 text-blue-600" /> Supabase Database
             </span>
-            <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Saved Live
+            <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 ${supabaseSaved ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}`}>
+              <ShieldCheck className="w-3.5 h-3.5" /> {supabaseSaved ? 'Saved Live' : 'Active & Synced'}
             </span>
           </div>
 

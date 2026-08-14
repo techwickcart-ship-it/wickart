@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
-import { Search, Eye, Filter, Edit2, Trash2, XCircle, ShieldCheck, User, Mail, Phone, ShoppingBag, MapPin, X } from 'lucide-react';
+import { Search, Eye, Filter, Edit2, Trash2, XCircle, ShieldCheck, User, Mail, Phone, ShoppingBag, MapPin, X, RefreshCw, Database } from 'lucide-react';
 import { marketplaceStore, useMarketplaceData } from '../lib/store';
 
 export function ViewCustomersPage() {
@@ -12,6 +12,24 @@ export function ViewCustomersPage() {
   const [search, setSearch] = useState('');
   const [selectedCust, setSelectedCust] = useState<any | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  useEffect(() => {
+    marketplaceStore.syncCustomersFromSupabase().catch(console.warn);
+  }, []);
+
+  const handleSyncSupabase = async () => {
+    setIsSyncing(true);
+    try {
+      await marketplaceStore.syncCustomersFromSupabase();
+      setNotification('Synced live customer data from Supabase successfully!');
+    } catch (err: any) {
+      setNotification(`Sync error: ${err.message}`);
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => setNotification(null), 4000);
+    }
+  };
 
   const approveCustomer = (id: string) => {
     setCustomers(customers.map(c => 
@@ -28,18 +46,20 @@ export function ViewCustomersPage() {
   };
   
   const filteredCustomers = customers.filter(c => 
-    c.name.toLowerCase().includes(search.toLowerCase()) || 
-    c.id.toLowerCase().includes(search.toLowerCase())
+    (c.name || '').toLowerCase().includes(search.toLowerCase()) || 
+    (c.id || '').toLowerCase().includes(search.toLowerCase()) ||
+    (c.email || '').toLowerCase().includes(search.toLowerCase()) ||
+    (c.phone || '').includes(search)
   );
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
       {/* Toast Notification */}
       {notification && (
-        <div className="fixed top-6 right-6 z-[100] bg-emerald-900 border border-emerald-800 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-top-5 duration-300">
+        <div className="fixed top-6 right-6 z-[100] bg-slate-900 border border-slate-700 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-top-5 duration-300">
            <ShieldCheck className="w-5 h-5 text-emerald-400" />
            <span className="font-medium text-sm">{notification}</span>
-           <button onClick={() => setNotification(null)} className="ml-4 text-emerald-400 hover:text-white">
+           <button onClick={() => setNotification(null)} className="ml-4 text-slate-400 hover:text-white">
               <XCircle className="w-4 h-4" />
            </button>
         </div>
@@ -48,11 +68,21 @@ export function ViewCustomersPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">View Customers</h1>
-          <p className="text-slate-500 mt-1">Manage platform customers and their details.</p>
+          <p className="text-slate-500 mt-1">Manage platform customers, wallet balances, and Supabase synchronization.</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-lg transition-colors shadow-sm">
-          Export Data
-        </button>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={handleSyncSupabase}
+            disabled={isSyncing}
+            className="flex items-center gap-2 px-3.5 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 text-sm font-semibold rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>{isSyncing ? 'Syncing Supabase...' : 'Sync with Supabase'}</span>
+          </button>
+          <button className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer">
+            Export Data
+          </button>
+        </div>
       </div>
 
       <Card>

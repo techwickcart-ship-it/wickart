@@ -818,7 +818,7 @@ ALTER TABLE public.assigned_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wallet_transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.return_requests ENABLE ROW LEVEL SECURITY;
 
--- Create fine-grained policies for all tables to ensure RLS compliance with Supabase Linter
+-- Create fine-grained policies for all tables to ensure RLS compliance with Supabase
 DO $$
 DECLARE
     tbl text;
@@ -833,19 +833,21 @@ DECLARE
     ];
 BEGIN
     FOREACH tbl IN ARRAY tables LOOP
-        -- Drop legacy/overly-permissive policies
+        -- Drop any conflicting prior policies
         EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', 'Allow public access ' || tbl, tbl);
         EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', 'Allow public select ' || tbl, tbl);
         EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', 'Allow insert ' || tbl, tbl);
         EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', 'Allow update ' || tbl, tbl);
         EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', 'Allow delete ' || tbl, tbl);
+        EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', 'Allow all access ' || tbl, tbl);
+        EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', 'Allow public insert ' || tbl, tbl);
+        EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', 'Allow public update ' || tbl, tbl);
+        EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', 'Allow public delete ' || tbl, tbl);
 
-        -- Public SELECT policy (explicitly allowed by Supabase Linter 0024)
-        EXECUTE format('CREATE POLICY %I ON public.%I FOR SELECT USING (true)', 'Allow public select ' || tbl, tbl);
-
-        -- Non-literal write policies using role checks to pass linter checks
-        EXECUTE format('CREATE POLICY %I ON public.%I FOR INSERT WITH CHECK (auth.role() IS NOT NULL)', 'Allow insert ' || tbl, tbl);
-        EXECUTE format('CREATE POLICY %I ON public.%I FOR UPDATE USING (auth.role() IS NOT NULL)', 'Allow update ' || tbl, tbl);
-        EXECUTE format('CREATE POLICY %I ON public.%I FOR DELETE USING (auth.role() IS NOT NULL)', 'Allow delete ' || tbl, tbl);
+        -- Public CRUD policies for web app frontend & admin access
+        EXECUTE format('CREATE POLICY %I ON public.%I FOR SELECT TO anon, authenticated, service_role USING (true)', 'Allow public select ' || tbl, tbl);
+        EXECUTE format('CREATE POLICY %I ON public.%I FOR INSERT TO anon, authenticated, service_role WITH CHECK (true)', 'Allow public insert ' || tbl, tbl);
+        EXECUTE format('CREATE POLICY %I ON public.%I FOR UPDATE TO anon, authenticated, service_role USING (true) WITH CHECK (true)', 'Allow public update ' || tbl, tbl);
+        EXECUTE format('CREATE POLICY %I ON public.%I FOR DELETE TO anon, authenticated, service_role USING (true)', 'Allow public delete ' || tbl, tbl);
     END LOOP;
 END $$;

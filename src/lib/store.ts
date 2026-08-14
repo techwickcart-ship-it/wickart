@@ -1410,7 +1410,7 @@ export const marketplaceStore = {
 
   async syncCustomersFromSupabase(): Promise<void> {
     try {
-      const { data, error } = await supabase.from('customers').select('*');
+      const { data, error } = await supabase.from('customers').select('*').order('created_at', { ascending: false });
       if (error) {
         if (!isAuthOrApiKeyError(error)) console.warn('Supabase fetch customers error:', error.message);
         return;
@@ -1421,17 +1421,26 @@ export const marketplaceStore = {
           name: c.full_name || 'Customer',
           email: c.email || '',
           phone: c.mobile_number || '',
-          address: c.street_area || [c.house_flat_no, c.landmark, c.city].filter(Boolean).join(', ') || '',
+          houseNo: c.house_flat_no || '',
+          street: c.street_area || '',
+          landmark: c.landmark || '',
+          city: c.city || 'Sultanpur',
+          state: c.state || 'Uttar Pradesh',
+          pincode: c.pincode || '',
+          address: c.street_area || [c.house_flat_no, c.landmark, c.city, c.state, c.pincode].filter(Boolean).join(', ') || '',
           orders: 0,
           walletBalance: Number(c.wallet_balance) || 0,
           referralCode: c.referral_code || '',
+          referredByCode: c.referred_by_code || '',
+          agreedTerms: Boolean(c.agreed_terms),
+          agreedPrivacy: Boolean(c.agreed_privacy),
           status: 'Active'
         }));
 
         const currentLocal = getStored<any[]>('customers', []);
         const byKey = new Map<string, any>();
 
-        // Populate from Supabase
+        // Populate from Supabase first
         for (const item of mapped) {
           const key = (item.email || item.phone || item.id).toLowerCase();
           byKey.set(key, item);
@@ -1453,16 +1462,29 @@ export const marketplaceStore = {
     }
   },
 
-  async saveCustomerToSupabase(customer: any): Promise<void> {
+  async saveCustomerToSupabase(customer: any): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
+      const emailVal = (customer.email || '').trim().toLowerCase();
+      const phoneVal = (customer.phone || customer.mobile_number || '').trim();
+      const nameVal = (customer.name || customer.full_name || 'Customer').trim();
+
       const payload: any = {
-        full_name: customer.name || 'Customer',
-        mobile_number: customer.phone || '',
-        email: customer.email || `${customer.id || Date.now()}@customer.local`,
+        full_name: nameVal,
+        mobile_number: phoneVal,
+        email: emailVal || `${customer.id || Date.now()}@customer.local`,
         password_hash: customer.password_hash || customer.password || 'customer_pass_default',
-        street_area: customer.address || '',
-        wallet_balance: Number(customer.walletBalance) || 0,
-        referral_code: customer.referralCode || ''
+        house_flat_no: customer.houseNo || customer.house_flat_no || null,
+        street_area: customer.street || customer.address || customer.street_area || '',
+        landmark: customer.landmark || null,
+        city: customer.city || 'Sultanpur',
+        state: customer.state || 'Uttar Pradesh',
+        pincode: customer.pincode || null,
+        wallet_balance: Number(customer.walletBalance ?? customer.wallet_balance) || 0,
+        referral_code: customer.referralCode || customer.referral_code || null,
+        referred_by_code: customer.referredByCode || customer.referred_by_code || null,
+        agreed_terms: Boolean(customer.agreedTerms ?? customer.agreed_terms ?? true),
+        agreed_privacy: Boolean(customer.agreedPrivacy ?? customer.agreed_privacy ?? true),
+        updated_at: new Date().toISOString()
       };
 
       const isUUID = typeof customer.id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(customer.id);
@@ -1470,31 +1492,44 @@ export const marketplaceStore = {
       let existingId: string | null = null;
       if (isUUID) {
         existingId = customer.id;
-      } else if (payload.email) {
+      } else if (payload.email && !payload.email.includes('@customer.local')) {
         const { data: existing } = await supabase.from('customers').select('id').eq('email', payload.email).limit(1);
         if (existing && existing.length > 0) {
           existingId = existing[0].id;
         }
       }
 
-      if (existingId) {
-        const { error } = await supabase.from('customers').update(payload).eq('id', existingId);
-        if (error && !isAuthOrApiKeyError(error)) {
-          console.warn('Supabase update customer info:', error.message);
+      if (!existingId && payload.mobile_number) {
+        const { data: existingByPhone } = await supabase.from('customers').select('id').eq('mobile_number', payload.mobile_number).limit(1);
+        if (existingByPhone && existingByPhone.length > 0) {
+          existingId = existingByPhone[0].id;
         }
+      }
+
+      if (existingId) {
+        const { data, error } = await supabase.from('customers').update(payload).eq('id', existingId).select();
+        if (error) {
+          console.error('Supabase update customer error:', error.message);
+          return { success: false, error: error.message };
+        }
+        return { success: true, data: data?.[0] };
       } else {
-        const { data, error } = await supabase.from('customers').insert(payload).select();
-        if (error && !isAuthOrApiKeyError(error)) {
-          console.warn('Supabase insert customer info:', error.message);
+        const { data, error } = await supabase.from('customers').insert([payload]).select();
+        if (error) {
+          console.error('Supabase insert customer error:', error.message);
+          return { success: false, error: error.message };
         } else if (data && data[0]) {
           const realId = data[0].id;
           const currentList = this.getCustomers();
-          const updated = currentList.map(c => String(c.id) === String(customer.id) ? { ...c, id: realId } : c);
+          const updated = currentList.map(c => (String(c.id) === String(customer.id) || (c.email && c.email.toLowerCase() === payload.email)) ? { ...c, id: realId } : c);
           this.saveCustomers(updated);
+          return { success: true, data: data[0] };
         }
+        return { success: true };
       }
-    } catch (err) {
-      if (!isAuthOrApiKeyError(err)) console.warn('Failed to save customer to Supabase:', err);
+    } catch (err: any) {
+      console.error('Failed to save customer to Supabase:', err);
+      return { success: false, error: err?.message || String(err) };
     }
   },
 
@@ -1659,30 +1694,83 @@ export const marketplaceStore = {
   saveCustomers(list: any[]): void {
     setStored('customers', list);
   },
-  addCustomer(cust: { name: string; email?: string; phone?: string; address?: string; walletBalance?: number; referralCode?: string }): any {
+  addCustomer(cust: {
+    name: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    walletBalance?: number;
+    referralCode?: string;
+    referredByCode?: string;
+    password?: string;
+    password_hash?: string;
+    houseNo?: string;
+    street?: string;
+    landmark?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+    agreedTerms?: boolean;
+    agreedPrivacy?: boolean;
+    status?: string;
+  }): any {
     const list = this.getCustomers();
+    const cleanEmail = (cust.email || '').trim().toLowerCase();
+    const cleanPhone = (cust.phone || '').trim();
+
     // Check if customer with same email or phone already exists
-    const existing = list.find(c => (cust.email && c.email.toLowerCase() === cust.email.toLowerCase()) || (cust.phone && c.phone === cust.phone));
-    if (existing) {
-      return existing;
+    const existingIndex = list.findIndex(c => 
+      (cleanEmail && c.email && c.email.toLowerCase() === cleanEmail) || 
+      (cleanPhone && c.phone && c.phone === cleanPhone)
+    );
+
+    if (existingIndex >= 0) {
+      const updated = {
+        ...list[existingIndex],
+        ...cust,
+        email: cleanEmail || list[existingIndex].email,
+        phone: cleanPhone || list[existingIndex].phone,
+        name: cust.name || list[existingIndex].name
+      };
+      list[existingIndex] = updated;
+      this.saveCustomers(list);
+      this.saveCustomerToSupabase(updated).catch(err => console.warn('Customer bg update error:', err));
+      return updated;
     }
+
     const newId = `CUST-${String(list.length + 1).padStart(3, '0')}`;
     const cleanFirstName = (cust.name || 'USER').split(' ')[0].toUpperCase().replace(/[^A-Z]/g, '');
     const newCustomer = {
       id: newId,
       name: cust.name || 'New Customer',
-      email: cust.email || `${cust.name ? cust.name.toLowerCase().replace(/\s+/g, '') : 'user'}@example.com`,
-      phone: cust.phone || '+91 9000000000',
-      address: cust.address || 'Sultanpur, UP',
+      email: cleanEmail || `${cust.name ? cust.name.toLowerCase().replace(/\s+/g, '') : 'user'}@example.com`,
+      phone: cleanPhone || '+91 9000000000',
+      address: cust.address || [cust.houseNo, cust.street, cust.city, cust.pincode].filter(Boolean).join(', ') || 'Sultanpur, UP',
+      houseNo: cust.houseNo || '',
+      street: cust.street || '',
+      landmark: cust.landmark || '',
+      city: cust.city || 'Sultanpur',
+      state: cust.state || 'Uttar Pradesh',
+      pincode: cust.pincode || '',
+      password: cust.password || '',
       orders: 0,
       walletBalance: cust.walletBalance !== undefined ? cust.walletBalance : 0,
       referralCode: cust.referralCode || `${cleanFirstName || 'USER'}${Math.floor(100 + Math.random() * 899)}`,
-      status: 'Active'
+      referredByCode: cust.referredByCode || '',
+      agreedTerms: cust.agreedTerms !== undefined ? cust.agreedTerms : true,
+      agreedPrivacy: cust.agreedPrivacy !== undefined ? cust.agreedPrivacy : true,
+      status: cust.status || 'Active'
     };
     list.unshift(newCustomer);
     this.saveCustomers(list);
     this.saveCustomerToSupabase(newCustomer).catch(err => console.warn('Customer bg save error:', err));
     return newCustomer;
+  },
+
+  async addCustomerAsync(cust: any): Promise<{ customer: any; supabaseResult: any }> {
+    const customer = this.addCustomer(cust);
+    const supabaseResult = await this.saveCustomerToSupabase(customer);
+    return { customer, supabaseResult };
   },
 
   // REFERRAL CONFIG & LOGS

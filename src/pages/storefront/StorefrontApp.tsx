@@ -94,6 +94,10 @@ export function StorefrontApp() {
     setActivePage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
+    if (page === 'Home') {
+      setStorefrontSearchQuery('');
+    }
+
     let newHash = '';
     if (page === 'ProductDetails' && product) {
       setSelectedProduct(product);

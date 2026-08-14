@@ -177,12 +177,32 @@ export function CheckoutPage({ onNavigate, cartItems = [], onClearCart }: Checko
                      </div>
                      <div>
                         <label className="block text-sm font-bold text-slate-700 mb-2">Phone Number</label>
-                        <input name="phone" required type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:bg-white transition-colors font-medium text-slate-800" placeholder="+91 9821054321" />
+                        <input 
+                           name="phone" 
+                           required 
+                           type="tel" 
+                           inputMode="numeric"
+                           maxLength={10}
+                           value={phone} 
+                           onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} 
+                           className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:bg-white transition-colors font-mono font-medium text-slate-800" 
+                           placeholder="9821054321" 
+                        />
                      </div>
                   </div>
                   <div>
                      <label className="block text-sm font-bold text-slate-700 mb-2">WhatsApp Number (For Order Updates)</label>
-                     <input type="tel" defaultValue={phone} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:bg-white transition-colors" placeholder="+91 9821054321" />
+                     <input 
+                        type="tel" 
+                        inputMode="numeric"
+                        maxLength={10}
+                        defaultValue={phone} 
+                        onChange={(e) => {
+                          e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                        }}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 focus:bg-white transition-colors font-mono" 
+                        placeholder="9821054321" 
+                     />
                   </div>
                    <div>
                       <label className="block text-sm font-bold text-slate-700 mb-2">Select Store / Vendor</label>

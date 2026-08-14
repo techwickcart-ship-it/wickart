@@ -36,14 +36,18 @@ export function VendorRegistrationsPage() {
           documents: target.documents
         } : s);
         marketplaceStore.saveSellers(updatedSellers);
+        const activeSeller = updatedSellers.find(s => s.id === existing.id);
+        if (activeSeller) {
+          marketplaceStore.saveVendorToSupabase(activeSeller).catch(() => {});
+        }
       } else {
-        marketplaceStore.addSeller({
+        const newSeller = {
           name: target.name,
           email: target.email,
           phone: target.phone,
           password: target.password,
           storeName: target.businessName,
-          status: 'Active',
+          status: 'Active' as const,
           plan: target.plan,
           category: target.category,
           city: target.city,
@@ -53,7 +57,9 @@ export function VendorRegistrationsPage() {
           storeBanner: target.storeBanner,
           bankDetails: target.bankDetails,
           documents: target.documents
-        });
+        };
+        marketplaceStore.addSeller(newSeller);
+        marketplaceStore.saveVendorToSupabase(newSeller as any).catch(() => {});
       }
 
       // Also ensure matching Customer entry is active

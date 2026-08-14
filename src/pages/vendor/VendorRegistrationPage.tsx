@@ -169,7 +169,7 @@ export function VendorRegistrationPage() {
     setStepError('');
     if (currentStep === 0) {
       const name = (formData.fullName || formData.ownerName || '').trim();
-      const mobile = (formData.mobile || '').trim();
+      const mobileDigits = (formData.mobile || '').replace(/\D/g, '');
       const email = (formData.email || '').trim();
       const pwd = (formData.password || '').trim();
 
@@ -177,8 +177,8 @@ export function VendorRegistrationPage() {
         setStepError('Please enter your Full Name / Owner Name (at least 2 characters).');
         return;
       }
-      if (!mobile || mobile.replace(/\D/g, '').length < 10) {
-        setStepError('Please enter a valid 10-digit Mobile Number.');
+      if (!mobileDigits || mobileDigits.length !== 10) {
+        setStepError('Please enter a valid 10-digit numeric Mobile Number (e.g. 9876543210).');
         return;
       }
       if (!email || !email.includes('@')) {
@@ -205,6 +205,30 @@ export function VendorRegistrationPage() {
       const pincode = (formData.postalCode || '').trim();
       if (!addr || !city || !pincode) {
         setStepError('Please enter your Store Address, City, and PIN Code.');
+        return;
+      }
+    } else if (currentStep === 3) {
+      const cleanAadhaar = (formData.aadhaar || '').replace(/\D/g, '');
+      if (!cleanAadhaar) {
+        setStepError('Please enter your 12-digit Aadhaar Card Number.');
+        return;
+      }
+      if (cleanAadhaar.length !== 12) {
+        setStepError(`Aadhaar Card Number must be exactly 12 numeric digits (currently ${cleanAadhaar.length} digits entered).`);
+        return;
+      }
+      const cleanPan = (formData.pan || '').trim().toUpperCase();
+      if (!cleanPan) {
+        setStepError('Please enter your 10-character PAN Card Number.');
+        return;
+      }
+      if (cleanPan.length < 10) {
+        setStepError('PAN Card Number must be 10 characters (e.g. ABCDE1234F).');
+        return;
+      }
+    } else if (currentStep === 4) {
+      if (!formData.accountHolder?.trim() || !formData.bankName?.trim() || !formData.accountNumber?.trim() || !formData.ifsc?.trim()) {
+        setStepError('Please fill out all required Bank & Settlement Details.');
         return;
       }
     }
@@ -350,8 +374,32 @@ export function VendorRegistrationPage() {
                   <input type="text" value={formData.ownerName} onChange={e => updateField('ownerName', e.target.value)} className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 outline-none" placeholder="Rajesh Kumar" />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-700 mb-1 block">Mobile Number *</label>
-                  <input type="text" value={formData.mobile} onChange={e => updateField('mobile', e.target.value)} className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 outline-none" placeholder="+91 9876543210" />
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-slate-700">Mobile Number <span className="text-red-500">*</span></label>
+                    <span className={`text-[11px] font-bold ${
+                      (formData.mobile || '').length === 10 ? 'text-emerald-600' : 'text-slate-400'
+                    }`}>
+                      {(formData.mobile || '').length}/10 Digits
+                    </span>
+                  </div>
+                  <input 
+                    type="tel" 
+                    inputMode="numeric"
+                    pattern="[0-9]{10}"
+                    maxLength={10}
+                    value={formData.mobile} 
+                    onChange={e => {
+                      const cleanPhone = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      updateField('mobile', cleanPhone);
+                    }} 
+                    className={`w-full px-3.5 py-2.5 bg-slate-50 border rounded-xl text-sm font-mono tracking-wider outline-none transition-all ${
+                      (formData.mobile || '').length === 10
+                        ? 'border-emerald-400 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100'
+                        : 'border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
+                    }`}
+                    placeholder="9876543210" 
+                  />
+                  <p className="text-[11px] text-slate-500 mt-1">10-digit numeric mobile number (0-9 only)</p>
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-700 mb-1 block">Email Address *</label>
@@ -493,12 +541,59 @@ export function VendorRegistrationPage() {
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-bold text-slate-700 mb-1 block">Aadhaar Card Number *</label>
-                    <input type="text" value={formData.aadhaar} onChange={e => updateField('aadhaar', e.target.value)} className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:border-blue-500 outline-none" placeholder="12-digit number" />
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-slate-700">Aadhaar Card Number <span className="text-red-500">*</span></label>
+                      <span className={`text-[11px] font-bold ${
+                        (formData.aadhaar || '').length === 12 ? 'text-emerald-600' : 'text-slate-400'
+                      }`}>
+                        {(formData.aadhaar || '').length}/12 Digits
+                      </span>
+                    </div>
+                    <input 
+                      type="text" 
+                      inputMode="numeric"
+                      pattern="[0-9]{12}"
+                      maxLength={12}
+                      value={formData.aadhaar} 
+                      onChange={e => {
+                        // Strictly filter out any non-numeric characters and cap at 12 digits
+                        const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 12);
+                        updateField('aadhaar', digitsOnly);
+                      }} 
+                      className={`w-full px-3.5 py-2.5 bg-white border rounded-xl text-sm font-mono tracking-wider outline-none transition-all ${
+                        (formData.aadhaar || '').length === 12 
+                          ? 'border-emerald-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100' 
+                          : 'border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
+                      }`}
+                      placeholder="12-digit Aadhaar number" 
+                    />
+                    <p className="text-[11px] text-slate-500 mt-1">Numbers only. Alphabets and special characters are blocked.</p>
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-700 mb-1 block">PAN Card Number *</label>
-                    <input type="text" value={formData.pan} onChange={e => updateField('pan', e.target.value)} className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:border-blue-500 outline-none uppercase" placeholder="ABCDE1234F" />
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-slate-700">PAN Card Number <span className="text-red-500">*</span></label>
+                      <span className={`text-[11px] font-bold ${
+                        (formData.pan || '').length === 10 ? 'text-emerald-600' : 'text-slate-400'
+                      }`}>
+                        {(formData.pan || '').length}/10 Chars
+                      </span>
+                    </div>
+                    <input 
+                      type="text" 
+                      maxLength={10}
+                      value={formData.pan} 
+                      onChange={e => {
+                        const cleanPan = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+                        updateField('pan', cleanPan);
+                      }} 
+                      className={`w-full px-3.5 py-2.5 bg-white border rounded-xl text-sm font-mono tracking-wider outline-none uppercase transition-all ${
+                        (formData.pan || '').length === 10 
+                          ? 'border-emerald-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100' 
+                          : 'border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
+                      }`}
+                      placeholder="ABCDE1234F" 
+                    />
+                    <p className="text-[11px] text-slate-500 mt-1">Standard 10-character Permanent Account Number</p>
                   </div>
                 </div>
               </div>
@@ -509,8 +604,30 @@ export function VendorRegistrationPage() {
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-bold text-slate-700 mb-1 block">GSTIN Number</label>
-                    <input type="text" value={formData.gstin} onChange={e => updateField('gstin', e.target.value)} className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:border-blue-500 outline-none uppercase" placeholder="27ABCDE1234F1Z5" />
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-slate-700">GSTIN Number</label>
+                      <span className={`text-[11px] font-bold ${
+                        (formData.gstin || '').length === 15 ? 'text-emerald-600' : 'text-slate-400'
+                      }`}>
+                        {(formData.gstin || '').length}/15 Chars
+                      </span>
+                    </div>
+                    <input 
+                      type="text" 
+                      maxLength={15}
+                      value={formData.gstin} 
+                      onChange={e => {
+                        const cleanGstin = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15);
+                        updateField('gstin', cleanGstin);
+                      }} 
+                      className={`w-full px-3.5 py-2.5 bg-white border rounded-xl text-sm font-mono tracking-wider outline-none uppercase transition-all ${
+                        (formData.gstin || '').length === 15
+                          ? 'border-emerald-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100'
+                          : 'border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
+                      }`}
+                      placeholder="27ABCDE1234F1Z5" 
+                    />
+                    <p className="text-[11px] text-slate-500 mt-1">15-character alphanumeric Goods & Services Tax ID (0-9, A-Z)</p>
                   </div>
                   <div>
                     <label className="text-xs font-bold text-slate-700 mb-1 block">FSSAI License (If Food/Grocery)</label>
@@ -611,7 +728,16 @@ export function VendorRegistrationPage() {
                 </div>
                 <div className="md:col-span-2">
                   <label className="text-xs font-bold text-slate-700 mb-1 block">Customer Support Phone / Helpline</label>
-                  <input type="text" value={formData.supportPhone} onChange={e => updateField('supportPhone', e.target.value)} className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 outline-none" placeholder="+91 9876543210" />
+                  <input 
+                    type="tel" 
+                    inputMode="numeric"
+                    maxLength={10}
+                    value={formData.supportPhone} 
+                    onChange={e => updateField('supportPhone', e.target.value.replace(/\D/g, '').slice(0, 10))} 
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono focus:bg-white focus:border-blue-500 outline-none" 
+                    placeholder="9876543210" 
+                  />
+                  <p className="text-[11px] text-slate-500 mt-1">10-digit phone number (numbers only)</p>
                 </div>
               </div>
             </div>

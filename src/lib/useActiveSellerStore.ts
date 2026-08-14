@@ -43,6 +43,12 @@ export function useActiveSellerStore() {
     };
   }, [sellers]);
 
+  const activeSeller = sellers.find(s => 
+    (activeSellerId && String(s.id).toLowerCase() === String(activeSellerId).toLowerCase()) ||
+    (activeSellerStoreName && s.storeName && s.storeName.trim().toLowerCase() === activeSellerStoreName.trim().toLowerCase()) ||
+    (activeSellerStoreName && s.name && s.name.trim().toLowerCase() === activeSellerStoreName.trim().toLowerCase())
+  );
+
   const changeSeller = (seller: Seller) => {
     localStorage.setItem('activeSellerId', seller.id);
     localStorage.setItem('activeSellerStoreName', seller.storeName);
@@ -52,8 +58,9 @@ export function useActiveSellerStore() {
   };
 
   return {
-    activeSellerStoreName,
-    activeSellerId,
+    activeSellerStoreName: activeSellerStoreName || (activeSeller?.storeName || 'Seller Store'),
+    activeSellerId: activeSellerId || (activeSeller?.id || '1'),
+    activeSeller,
     sellers,
     changeSeller
   };

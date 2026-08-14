@@ -17,13 +17,16 @@ export function AllSellersPage() {
     marketplaceStore.saveSellers(updated);
   };
   
-  const approveVendor = (id: string) => {
+  const approveVendor = async (id: string) => {
     const list = marketplaceStore.getSellers();
     const target = list.find(s => s.id === id);
     const updated = list.map(s => s.id === id ? { ...s, status: 'Active' as const } : s);
     marketplaceStore.saveSellers(updated);
 
     if (target) {
+      const activeSellerObj: Seller = { ...target, status: 'Active' };
+      marketplaceStore.saveVendorToSupabase(activeSellerObj).catch(() => {});
+
       // Sync vendorRegistrations
       const regs = marketplaceStore.getVendorRegistrations();
       const updatedRegs = regs.map(r => (r.email.toLowerCase() === target.email.toLowerCase() || r.phone === target.phone) ? { ...r, status: 'Approved' as const } : r);

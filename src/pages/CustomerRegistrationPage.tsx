@@ -39,10 +39,13 @@ export function CustomerRegistrationPage() {
       setErrorMsg('Please enter your Full Name (at least 2 characters). Account cannot be created without details.');
       return;
     }
-    if (!mobile.trim() || mobile.trim().length < 10) {
-      setErrorMsg('Please enter a valid 10-digit Mobile Number. Account cannot be created without details.');
+    
+    const mobileDigits = mobile.replace(/\D/g, '');
+    if (mobileDigits.length !== 10) {
+      setErrorMsg('Please enter a valid 10-digit numeric Mobile Number (0-9 only, exactly 10 digits).');
       return;
     }
+
     if (!email.trim() || !email.includes('@')) {
       setErrorMsg('Please enter a valid Email Address.');
       return;
@@ -60,16 +63,22 @@ export function CustomerRegistrationPage() {
       return;
     }
 
+    const pinDigits = pincode.replace(/\D/g, '');
+    if (pinDigits.length !== 6) {
+      setErrorMsg('Please enter a valid 6-digit numeric PIN Code (e.g. 228001).');
+      return;
+    }
+
     const nameToSave = fullName.trim();
     localStorage.setItem('isCustomerLoggedIn', 'true');
     localStorage.setItem('customerName', nameToSave);
 
-    const fullAddress = [houseNo.trim(), street.trim(), landmark.trim(), city.trim(), stateName.trim(), pincode.trim()].filter(Boolean).join(', ');
+    const fullAddress = [houseNo.trim(), street.trim(), landmark.trim(), city.trim(), stateName.trim(), pinDigits].filter(Boolean).join(', ');
 
     marketplaceStore.addCustomer({
       name: nameToSave,
       email: email.trim(),
-      phone: mobile.trim(),
+      phone: mobileDigits,
       address: fullAddress,
       referralCode: referralCodeInput.trim() || undefined
     });
@@ -79,7 +88,7 @@ export function CustomerRegistrationPage() {
         name: nameToSave,
         businessName: `${nameToSave}'s Store`,
         email: email.trim(),
-        phone: mobile.trim(),
+        phone: mobileDigits,
         city: city.trim(),
         address: fullAddress,
         status: 'Pending'
@@ -293,8 +302,20 @@ export function CustomerRegistrationPage() {
                          />
                       </div>
                       <div>
-                         <label className="block text-sm font-semibold text-slate-700 mb-1.5">Mobile Number <span className="text-red-500">*</span></label>
-                         <input required type="tel" value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="+91 9000000000" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
+                         <div className="flex justify-between items-center mb-1.5">
+                           <label className="block text-sm font-semibold text-slate-700">Mobile Number <span className="text-red-500">*</span></label>
+                           <span className="text-[11px] font-mono font-bold text-slate-500">{mobile.length}/10 Digits</span>
+                         </div>
+                         <input 
+                           required 
+                           type="tel" 
+                           inputMode="numeric"
+                           maxLength={10}
+                           value={mobile} 
+                           onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))} 
+                           placeholder="e.g. 9876543210" 
+                           className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all font-medium" 
+                         />
                       </div>
                       <div>
                          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email Address <span className="text-red-500">*</span></label>
@@ -336,8 +357,20 @@ export function CustomerRegistrationPage() {
                          <input required type="text" value={stateName} onChange={(e) => setStateName(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
                       </div>
                       <div>
-                         <label className="block text-sm font-semibold text-slate-700 mb-1.5">PIN Code <span className="text-red-500">*</span></label>
-                         <input required type="text" value={pincode} onChange={(e) => setPincode(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" />
+                         <div className="flex justify-between items-center mb-1.5">
+                           <label className="block text-sm font-semibold text-slate-700">PIN Code <span className="text-red-500">*</span></label>
+                           <span className="text-[11px] font-mono font-bold text-slate-500">{pincode.length}/6 Digits</span>
+                         </div>
+                         <input 
+                           required 
+                           type="text" 
+                           inputMode="numeric"
+                           maxLength={6}
+                           value={pincode} 
+                           onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))} 
+                           placeholder="e.g. 228001"
+                           className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all font-medium" 
+                         />
                       </div>
                    </div>
                 </div>

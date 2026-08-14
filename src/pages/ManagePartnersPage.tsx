@@ -99,6 +99,12 @@ export function ManagePartnersPage() {
       return;
     }
 
+    const cleanPhone = formPhone.replace(/\D/g, '');
+    if (cleanPhone.length !== 10) {
+      alert('Please enter a valid 10-digit numeric Phone Number (0-9 only, exactly 10 digits).');
+      return;
+    }
+
     const finalCity = formCity === 'Custom' ? formCustomCity : formCity;
     if (!finalCity) {
       alert('Please specify a City.');
@@ -108,7 +114,7 @@ export function ManagePartnersPage() {
     const newPartner: Partial<DeliveryPartner> = {
       type: formType,
       name: formName,
-      phone: formPhone,
+      phone: cleanPhone,
       address: formAddress,
       branch: formBranch,
       state: formState,
@@ -273,15 +279,20 @@ VALUES
 
                 {/* 3. Phone Number */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Phone Number *</label>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Phone Number *</label>
+                    <span className="text-[10px] font-mono font-bold text-slate-400">{formPhone.length}/10 Digits</span>
+                  </div>
                   <div className="relative">
                     <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="tel"
+                      inputMode="numeric"
+                      maxLength={10}
                       required
                       value={formPhone}
-                      onChange={(e) => setFormPhone(e.target.value)}
-                      placeholder="+91 XXXXX XXXXX"
+                      onChange={(e) => setFormPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                      placeholder="e.g. 9876543210"
                       className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:border-blue-500 outline-none text-slate-800 font-medium transition-all"
                     />
                   </div>

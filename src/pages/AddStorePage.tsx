@@ -26,12 +26,18 @@ export function AddStorePage({ onNavigate }: AddStorePageProps) {
       return;
     }
 
+    const cleanPhone = phone ? phone.replace(/\D/g, '').slice(0, 10) : '';
+    if (phone && cleanPhone.length !== 10) {
+      alert('Please enter a valid 10-digit numeric Phone Number (0-9 only).');
+      return;
+    }
+
     const newSeller = {
       id: `S-${Math.floor(1000 + Math.random() * 9000)}`,
       name: ownerName.trim(),
       storeName: storeName.trim(),
       email: email.trim() || `${storeName.toLowerCase().replace(/\s+/g, '')}@store.com`,
-      phone: phone.trim() || '+91 98765 43210',
+      phone: cleanPhone || '9876543210',
       address: address.trim(),
       city: city.trim() || 'Sultanpur',
       category: category,
@@ -116,15 +122,20 @@ export function AddStorePage({ onNavigate }: AddStorePageProps) {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
-                  <Phone className="w-3.5 h-3.5 text-blue-600" /> Contact Phone Number
-                </label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <Phone className="w-3.5 h-3.5 text-blue-600" /> Contact Phone Number
+                  </label>
+                  <span className="text-[10px] font-mono font-bold text-slate-400">{phone.length}/10 Digits</span>
+                </div>
                 <input 
                   type="tel" 
+                  inputMode="numeric"
+                  maxLength={10}
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-blue-500 text-xs font-semibold transition-all" 
-                  placeholder="+91 98765 43210" 
+                  placeholder="e.g. 9876543210" 
                 />
               </div>
 

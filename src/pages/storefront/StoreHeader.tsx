@@ -372,7 +372,7 @@ export function StoreHeader({
             }}
             className="relative flex items-center"
           >
-             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+             <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
              <input 
                type="text" 
                placeholder="Search groceries, electronics, tea..." 
@@ -382,7 +382,7 @@ export function StoreHeader({
                  setIsSearchOpen(true);
                }}
                onFocus={() => setIsSearchOpen(true)}
-               className="w-full pl-10 pr-28 py-2.5 bg-slate-100 border border-transparent rounded-full text-sm focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all text-slate-800 font-medium" 
+               className="w-full pl-10 pr-28 py-2.5 bg-white border border-slate-300 hover:border-slate-400 rounded-full text-sm focus:bg-white focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-slate-950 font-semibold placeholder:text-slate-400 shadow-2xs" 
              />
              
              {searchQuery && (
@@ -392,8 +392,8 @@ export function StoreHeader({
                    setSearchQuery('');
                    handleExecuteSearch('');
                  }}
-                 className="absolute right-20 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
-                 title="Clear search"
+                 className="absolute right-22 text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full p-1 cursor-pointer transition-colors"
+                 title="Clear search query"
                >
                  <X className="w-3.5 h-3.5" />
                </button>
@@ -468,6 +468,8 @@ export function StoreHeader({
                             key={prod.id}
                             onClick={() => {
                               setIsSearchOpen(false);
+                              setSearchQuery('');
+                              if (onSearch) onSearch('');
                               if (onViewProduct) {
                                 onViewProduct(prod);
                               } else {
@@ -658,14 +660,27 @@ export function StoreHeader({
               }}
               className="relative mb-6 flex items-center"
             >
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input 
                 type="text" 
                 placeholder="Search products..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-20 py-2.5 bg-slate-100 border border-slate-200 rounded-full text-xs focus:bg-white focus:border-blue-500 outline-none transition-all text-slate-800 font-medium" 
+                className="w-full pl-9 pr-24 py-2.5 bg-white border border-slate-300 rounded-full text-xs text-slate-950 font-semibold focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-slate-400 shadow-2xs" 
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    handleExecuteSearch('');
+                  }}
+                  className="absolute right-18 text-slate-400 hover:text-slate-700 bg-slate-100 rounded-full p-1 cursor-pointer"
+                  title="Clear"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
               <button
                 type="submit"
                 className="absolute right-1 top-1/2 -translate-y-1/2 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] rounded-full transition-colors cursor-pointer"

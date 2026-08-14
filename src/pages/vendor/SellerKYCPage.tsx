@@ -299,14 +299,21 @@ export function SellerKYCPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">GSTIN Number (Goods & Services Tax ID)</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold text-slate-700">GSTIN Number (Goods & Services Tax ID)</label>
+                <span className={`text-[11px] font-bold ${(gstin || '').length === 15 ? 'text-emerald-600' : 'text-slate-400'}`}>
+                  {(gstin || '').length}/15 Chars
+                </span>
+              </div>
               <input 
                 type="text" 
+                maxLength={15}
                 placeholder="27ABCDE1234F1Z5"
                 value={gstin}
-                onChange={(e) => setGstin(e.target.value)}
+                onChange={(e) => setGstin(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15))}
                 className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono font-semibold focus:border-blue-500 outline-none uppercase"
               />
+              <p className="text-[10px] text-slate-400 mt-1">15 alphanumeric characters (0-9, A-Z)</p>
             </div>
 
             <div className="flex items-end">

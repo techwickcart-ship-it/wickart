@@ -736,55 +736,14 @@ export function OrdersPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button 
-                          onClick={() => setSelectedOrder(order)}
-                          className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer border border-transparent hover:border-blue-200" 
-                          title="View Order Details"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        
-                        {order.status === 'Pending' && (
-                          <>
-                            <button 
-                              onClick={() => updateOrderStatus(order.id, 'Confirmed')} 
-                              className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer" 
-                              title="Approve/Accept Order"
-                            >
-                              <CheckCircle2 className="w-4 h-4" />
-                            </button>
-                            <button 
-                              onClick={() => updateOrderStatus(order.id, 'Cancelled')} 
-                              className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer" 
-                              title="Cancel Order"
-                            >
-                              <XCircle className="w-4 h-4" />
-                            </button>
-                          </>
-                        )}
-
-                        {order.status === 'Confirmed' && (
-                          <button 
-                            onClick={() => updateOrderStatus(order.id, 'Out for Delivery')} 
-                            className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer" 
-                            title="Dispatch Order"
-                          >
-                            <Truck className="w-4 h-4" />
-                          </button>
-                        )}
-                        
-                        {order.status === 'Out for Delivery' && (
-                          <button 
-                            onClick={() => updateOrderStatus(order.id, 'Delivered')} 
-                            className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer" 
-                            title="Mark Delivered"
-                          >
-                            <CheckCircle2 className="w-4 h-4" />
-                          </button>
-                        )}
-
-                      </div>
+                      <button 
+                        onClick={() => setSelectedOrder(order)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-bold transition-colors cursor-pointer border border-blue-200/70 shadow-2xs" 
+                        title="View Order Details"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>View Order</span>
+                      </button>
                     </td>
                   </tr>
                 ))}

@@ -10,27 +10,38 @@ export function SellerInventoryPage() {
   const [toastMsg, setToastMsg] = useState('');
 
   const products = useMarketplaceData('products', () => marketplaceStore.getProducts());
-  const { activeSellerStoreName, activeSellerId } = useActiveSellerStore();
+  const { activeSellerStoreName, activeSellerId, activeSeller } = useActiveSellerStore();
   
+  // Filter products belonging strictly to active vendor store
   const sellerProducts = products.filter(p => {
-    const vendorMatch = Boolean(p.vendor && p.vendor.trim().toLowerCase() === activeSellerStoreName.trim().toLowerCase());
-    const idMatch = Boolean(p.sellerId && String(p.sellerId) === String(activeSellerId));
+    const activeStore = (activeSellerStoreName || '').trim().toLowerCase();
+    const activeOwner = (activeSeller?.name || '').trim().toLowerCase();
+    const activeIdStr = String(activeSellerId || '').toLowerCase();
+    const activeSellerUuid = activeSeller?.id ? String(activeSeller.id).toLowerCase() : '';
+
+    const vendorMatch = Boolean(
+      (activeStore && p.vendor && p.vendor.trim().toLowerCase() === activeStore) ||
+      (activeOwner && p.vendor && p.vendor.trim().toLowerCase() === activeOwner)
+    );
+    const idMatch = Boolean(
+      (activeIdStr && p.sellerId && String(p.sellerId).toLowerCase() === activeIdStr) ||
+      (activeSellerUuid && p.sellerId && String(p.sellerId).toLowerCase() === activeSellerUuid)
+    );
     return vendorMatch || idMatch;
   });
 
-  // Generate dynamic inventory items from real vendor products
+  // Dynamic inventory items directly mapped from real product stock (persisted)
   const inventoryItems = sellerProducts.map(p => {
-    // Generate stock or retrieve from local state override
     const override = stockUpdates[String(p.id)];
-    const idNum = typeof p.id === 'number' ? p.id : (parseInt(String(p.id)) || 1);
-    const stock = override !== undefined ? override : (idNum % 4 === 0 ? 0 : idNum % 3 === 0 ? 6 : 15 + (idNum * 3) % 30);
+    const parsedStock = typeof p.stock === 'number' ? p.stock : (p.stock !== undefined ? parseInt(String(p.stock)) : 50);
+    const stock = override !== undefined ? override : (isNaN(parsedStock) ? 0 : parsedStock);
     const threshold = 10;
     const status = stock === 0 ? 'Out of Stock' : stock <= threshold ? 'Low Stock' : 'In Stock';
     return {
       rawId: p.id,
       id: `PRD-${p.id}`,
       name: p.name,
-      sku: `${p.name.substring(0, 3).toUpperCase()}-${p.id}`,
+      sku: `${(p.name || 'PRD').substring(0, 3).toUpperCase()}-${p.id}`,
       stock,
       threshold,
       status,
@@ -42,8 +53,24 @@ export function SellerInventoryPage() {
   const lowStockCount = inventoryItems.filter(item => item.status === 'Low Stock').length;
 
   const handleSaveStock = (rawId: number | string, newStockVal: number) => {
-    setStockUpdates(prev => ({ ...prev, [String(rawId)]: newStockVal }));
-    setToastMsg(`Stock updated to ${newStockVal} units.`);
+    const validStock = isNaN(newStockVal) || newStockVal < 0 ? 0 : newStockVal;
+    // Update local state for immediate feedback
+    setStockUpdates(prev => ({ ...prev, [String(rawId)]: validStock }));
+    // Persist permanently in marketplaceStore (localStorage & Supabase)
+    marketplaceStore.updateProduct(rawId, { stock: validStock });
+    // Also update global inventory
+    try {
+      const invList = marketplaceStore.getGlobalInventory();
+      const idx = invList.findIndex(item => String(item.id) === `PRD-${rawId}` || String(item.id) === String(rawId));
+      if (idx !== -1) {
+        invList[idx].stock = validStock;
+        invList[idx].status = validStock === 0 ? 'Out of Stock' : validStock <= 10 ? 'Low Stock' : 'In Stock';
+        marketplaceStore.saveGlobalInventory(invList);
+      }
+    } catch (err) {
+      console.warn('Error syncing to global inventory:', err);
+    }
+    setToastMsg(`Stock updated and saved to ${validStock} units.`);
     setTimeout(() => setToastMsg(''), 3000);
   };
 

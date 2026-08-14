@@ -854,11 +854,27 @@ export const marketplaceStore = {
       }
 
       if (data && data.length > 0) {
+        const sellers = this.getSellers();
+        const sellersById = new Map<string, Seller>();
+        const sellersByStore = new Map<string, Seller>();
+
+        for (const s of sellers) {
+          if (s.id) sellersById.set(String(s.id).toLowerCase(), s);
+          if (s.storeName) sellersByStore.set(s.storeName.trim().toLowerCase(), s);
+          if (s.email) sellersByStore.set(s.email.trim().toLowerCase(), s);
+        }
+
         const mapped: Product[] = data.map((row: any) => {
           const photoUrls = Array.isArray(row.photo_urls) ? row.photo_urls : [];
           const primaryImg = photoUrls[0] || row.image_url || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600';
           const numericPrice = row.selling_price !== null && row.selling_price !== undefined ? row.selling_price : 0;
           const numericMrp = row.mrp !== null && row.mrp !== undefined ? row.mrp : null;
+
+          const matchedSeller = (row.vendor_id ? sellersById.get(String(row.vendor_id).toLowerCase()) : null) ||
+            (row.custom_category ? sellersByStore.get(String(row.custom_category).trim().toLowerCase()) : null);
+
+          const resolvedVendor = row.custom_category || matchedSeller?.storeName || (row.vendor_id ? matchedSeller?.storeName : null) || 'Sultanpur Local Vendor';
+          const resolvedSellerId = row.vendor_id || matchedSeller?.id || '1';
 
           return {
             id: row.id,
@@ -872,12 +888,12 @@ export const marketplaceStore = {
             sizes: Array.isArray(row.sizes) ? row.sizes : [],
             variants: Array.isArray(row.variants) ? row.variants : [],
             tag: row.combo_tag || row.status || 'Published',
-            vendor: row.main_store_category || 'Sultanpur Local Vendor',
-            sellerId: row.vendor_id || '1',
-            brand: row.brand || 'Generic',
+            vendor: resolvedVendor,
+            sellerId: resolvedSellerId,
+            brand: row.brand || (Array.isArray(row.tags) && row.tags[1]) || 'Generic',
             shortDescription: row.short_description || '',
             description: row.detailed_description || row.short_description || '',
-            category: row.main_store_category || row.custom_category || 'General',
+            category: row.main_store_category || 'General',
             isComboOffer: !!row.is_combo_offer,
             comboTitle: row.combo_title || '',
             comboItems: row.combo_items || '',
@@ -890,12 +906,28 @@ export const marketplaceStore = {
         const currentLocal = getStored<Product[]>('products', []);
         const byKey = new Map<string, Product>();
 
-        for (const item of mapped) {
+        for (const item of currentLocal) {
           byKey.set(String(item.id), item);
         }
-        for (const item of currentLocal) {
-          if (!byKey.has(String(item.id))) {
-            byKey.set(String(item.id), item);
+
+        for (const remoteItem of mapped) {
+          const localItem = byKey.get(String(remoteItem.id));
+          if (localItem) {
+            // Keep local vendor & sellerId if remote was empty or generic
+            const isLocalSpecificVendor = localItem.vendor && localItem.vendor !== 'Sultanpur Local Vendor' && localItem.vendor !== 'General';
+            const mergedProd: Product = {
+              ...remoteItem,
+              ...localItem,
+              vendor: isLocalSpecificVendor ? localItem.vendor : (remoteItem.vendor || localItem.vendor),
+              sellerId: localItem.sellerId && localItem.sellerId !== '1' ? localItem.sellerId : (remoteItem.sellerId || localItem.sellerId),
+              price: remoteItem.price || localItem.price,
+              mrp: remoteItem.mrp || localItem.mrp,
+              name: remoteItem.name || localItem.name,
+              category: remoteItem.category || localItem.category
+            };
+            byKey.set(String(remoteItem.id), mergedProd);
+          } else {
+            byKey.set(String(remoteItem.id), remoteItem);
           }
         }
 
@@ -917,10 +949,28 @@ export const marketplaceStore = {
         ? product.media 
         : (product.images && product.images.length > 0 ? product.images : (product.image ? [product.image] : []));
 
+      // Resolve seller UUID if possible
+      let resolvedVendorId: string | null = null;
+      if (product.sellerId && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(product.sellerId))) {
+        resolvedVendorId = String(product.sellerId);
+      } else {
+        const sellers = this.getSellers();
+        const matched = sellers.find(s => 
+          (product.sellerId && String(s.id) === String(product.sellerId)) ||
+          (product.vendor && s.storeName && s.storeName.trim().toLowerCase() === product.vendor.trim().toLowerCase())
+        );
+        if (matched && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(matched.id))) {
+          resolvedVendorId = String(matched.id);
+        }
+      }
+
       const payload: any = {
         name: product.name,
         selling_price: numPrice,
         mrp: numMrp,
+        vendor_id: resolvedVendorId,
+        custom_category: product.vendor || null,
+        brand_id: null,
         short_description: product.shortDescription || product.description || '',
         detailed_description: product.description || product.shortDescription || '',
         main_store_category: product.category || 'General',
@@ -932,6 +982,8 @@ export const marketplaceStore = {
         photo_urls: photos,
         sizes: product.sizes || [],
         variants: product.variants || [],
+        tags: [product.vendor || '', product.brand || 'Generic'].filter(Boolean),
+        total_allowed_qty: typeof product.stock === 'number' ? product.stock : 100,
         status: 'Published'
       };
 
@@ -1131,39 +1183,66 @@ export const marketplaceStore = {
         }));
 
         const currentLocal = getStored<Seller[]>('sellers', []);
-        const byKey = new Map<string, Seller>();
+        
+        // Helper to find existing local seller
+        const findMatchingLocal = (remote: Seller): Seller | undefined => {
+          const remoteEmail = (remote.email || '').trim().toLowerCase();
+          const remotePhoneDigits = (remote.phone || '').replace(/\D/g, '').slice(-10);
+          const remoteStore = (remote.storeName || '').trim().toLowerCase();
+          const remoteId = String(remote.id).toLowerCase();
 
-        for (const item of currentLocal) {
-          const key = (item.email || item.phone || String(item.id)).toLowerCase();
-          if (key) byKey.set(key, item);
+          return currentLocal.find(l => {
+            if (remoteEmail && l.email && l.email.trim().toLowerCase() === remoteEmail) return true;
+            if (remotePhoneDigits && l.phone && l.phone.replace(/\D/g, '').slice(-10) === remotePhoneDigits) return true;
+            if (remoteId && String(l.id).toLowerCase() === remoteId) return true;
+            if (remoteStore && l.storeName && l.storeName.trim().toLowerCase() === remoteStore) return true;
+            return false;
+          });
+        };
+
+        const mergedMap = new Map<string, Seller>();
+
+        // Seed with all current local sellers
+        for (const localItem of currentLocal) {
+          const key = (localItem.email || localItem.phone || String(localItem.id)).toLowerCase();
+          if (key) mergedMap.set(key, localItem);
         }
 
+        // Merge remote sellers
         for (const remoteItem of mapped) {
+          const matchedLocal = findMatchingLocal(remoteItem);
           const key = (remoteItem.email || remoteItem.phone || String(remoteItem.id)).toLowerCase();
-          if (!key) continue;
-          const localItem = byKey.get(key);
-          if (localItem) {
-            const isLocalActive = localItem.status === 'Active' || (localItem as any).status === 'Approved';
+
+          if (matchedLocal) {
+            const isLocalActive = matchedLocal.status === 'Active' || (matchedLocal as any).status === 'Approved';
             const isRemoteActive = remoteItem.status === 'Active' || (remoteItem as any).status === 'Approved';
             const finalStatus: 'Active' | 'Pending' | 'Suspended' = (isLocalActive || isRemoteActive) ? 'Active' : (remoteItem.status === 'Suspended' ? 'Suspended' : 'Pending');
 
             const merged: Seller = {
-              ...localItem,
+              ...matchedLocal,
               ...remoteItem,
-              password: localItem.password || remoteItem.password,
+              id: remoteItem.id || matchedLocal.id, // Prefer Supabase UUID
+              storeName: matchedLocal.storeName || remoteItem.storeName,
+              password: matchedLocal.password || remoteItem.password,
               status: finalStatus
             };
-            byKey.set(key, merged);
+            
+            // Remove previous key if different
+            const oldKey = (matchedLocal.email || matchedLocal.phone || String(matchedLocal.id)).toLowerCase();
+            if (oldKey && oldKey !== key) mergedMap.delete(oldKey);
+            
+            mergedMap.set(key, merged);
 
+            // If locally approved but remote was pending, push approved status to Supabase
             if (isLocalActive && !isRemoteActive) {
               this.saveVendorToSupabase(merged).catch(() => {});
             }
           } else {
-            byKey.set(key, remoteItem);
+            mergedMap.set(key, remoteItem);
           }
         }
 
-        const mergedList = Array.from(byKey.values());
+        const mergedList = Array.from(mergedMap.values());
         setStored('sellers', mergedList);
         this.dispatchAllEvents();
       }

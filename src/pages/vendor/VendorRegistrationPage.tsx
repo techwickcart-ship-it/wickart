@@ -125,7 +125,26 @@ export function VendorRegistrationPage() {
   const [uploadedDocs, setUploadedDocs] = useState<Record<string, boolean>>({});
 
   const updateField = (key: string, value: string) => {
-    setFormData(prev => ({ ...prev, [key]: value }));
+    setFormData(prev => {
+      const next = { ...prev, [key]: value };
+      // Auto-fetch owner name from full name if owner name was empty or matched
+      if (key === 'fullName' && (!prev.ownerName || prev.ownerName === prev.fullName)) {
+        next.ownerName = value;
+      }
+      // Auto-fetch digital signature from full name if blank
+      if (key === 'fullName' && (!prev.signature || prev.signature === prev.fullName)) {
+        next.signature = value;
+      }
+      // Auto-fetch store display name from legal name if blank
+      if (key === 'legalName' && (!prev.storeName || prev.storeName === prev.legalName)) {
+        next.storeName = value;
+      }
+      // Auto-fetch legal name from store name if blank
+      if (key === 'storeName' && (!prev.legalName || prev.legalName === prev.storeName)) {
+        next.legalName = value;
+      }
+      return next;
+    });
   };
 
   const handleDocumentFile = (docName: string, file: File) => {

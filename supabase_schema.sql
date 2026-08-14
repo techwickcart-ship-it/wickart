@@ -133,7 +133,58 @@ BEGIN
         ALTER TABLE public.vendors RENAME COLUMN mobile TO mobile_number;
     END IF;
 
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS full_name TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS business_owner_name TEXT;
     ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS mobile_number TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS email TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS password_hash TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS referral_code TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS referred_by_code TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS wallet_balance NUMERIC(12, 2) DEFAULT 0.00;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS legal_business_name TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS business_type TEXT DEFAULT 'Proprietorship';
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS primary_category TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS store_display_name TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS operating_timings TEXT DEFAULT 'Fixed Timings (9 AM - 8 PM)';
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS store_description TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS store_logo_url TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS store_banner_url TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS store_address_line1 TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS landmark_line2 TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS city TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS state TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS pincode TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS latitude NUMERIC(10, 7);
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS longitude NUMERIC(10, 7);
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS delivery_radius_km TEXT DEFAULT '2 KM';
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS fulfillment_mode TEXT DEFAULT 'Platform Express Logistics';
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS aadhaar_number TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS pan_number TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS gstin_number TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS fssai_license TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS tax_category TEXT DEFAULT 'GST Registered Regular';
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS tax_invoice_prefix TEXT DEFAULT 'CSM-INV-';
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS bank_account_holder_name TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS bank_name TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS branch_name TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS account_number TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS ifsc_code TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS upi_vpa_id TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS preferred_payout_cycle TEXT DEFAULT 'Weekly Every Monday';
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS operational_days TEXT DEFAULT 'Mon-Sat (6 Days)';
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS order_processing_capacity TEXT DEFAULT '50 orders/day';
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS return_policy TEXT DEFAULT '7 Days Returnable';
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS dispatch_lead_time TEXT DEFAULT 'Within 24 Hours';
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS customer_support_phone TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS commission_plan TEXT DEFAULT 'Standard Plan';
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS commission_rate_percentage NUMERIC(5, 2) DEFAULT 3.00;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS aadhaar_front_url TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS aadhaar_back_url TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS pan_card_url TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS gst_certificate_url TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS cancelled_cheque_url TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS digital_signature TEXT;
+    ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'Pending';
 END $$;
 
 -- ==============================================================================
@@ -460,9 +511,16 @@ CREATE TABLE IF NOT EXISTS public.platform_settings (
     privacy_policy TEXT,
     cancellation_refund_policy TEXT,
     shipping_policy TEXT,
+    about_us_photo_url TEXT,
     display_tax_inclusive BOOLEAN DEFAULT TRUE,
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+DO $$
+BEGIN
+    ALTER TABLE public.platform_settings ADD COLUMN IF NOT EXISTS about_us_photo_url TEXT;
+    ALTER TABLE public.platform_settings ADD COLUMN IF NOT EXISTS display_tax_inclusive BOOLEAN DEFAULT TRUE;
+END $$;
 
 -- Homepage Top Categories & Sections
 CREATE TABLE IF NOT EXISTS public.homepage_top_categories (
@@ -628,6 +686,8 @@ CREATE TABLE IF NOT EXISTS public.coupons (
     discount_type TEXT DEFAULT 'fixed',
     discount_value NUMERIC(10, 2) NOT NULL DEFAULT 0,
     min_order_amount NUMERIC(10, 2) NOT NULL DEFAULT 0,
+    max_usage_per_user INT DEFAULT 1,
+    valid_until DATE,
     status TEXT DEFAULT 'Active',
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -640,18 +700,92 @@ BEGIN
     ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS discount_type TEXT DEFAULT 'fixed';
     ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS discount_value NUMERIC(10, 2) DEFAULT 0;
     ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS min_order_amount NUMERIC(10, 2) DEFAULT 0;
+    ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS max_usage_per_user INT DEFAULT 1;
+    ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS valid_until DATE;
     ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'Active';
 END $$;
 
 -- Seed Initial Coupons
-INSERT INTO public.coupons (code, discount_type, discount_value, min_order_amount, status)
+INSERT INTO public.coupons (code, discount_type, discount_value, min_order_amount, max_usage_per_user, valid_until, status)
 VALUES 
-('WELCOME100', 'fixed', 100.00, 499.00, 'Active'),
-('FESTIVE20', 'percentage', 20.00, 999.00, 'Active'),
-('SULTANPUR50', 'fixed', 50.00, 299.00, 'Active')
+('WELCOME100', 'fixed', 100.00, 499.00, 1, '2026-12-31', 'Active'),
+('FESTIVE20', 'percentage', 20.00, 999.00, 2, '2026-12-31', 'Active'),
+('SULTANPUR50', 'fixed', 50.00, 299.00, 1, '2026-12-31', 'Active')
 ON CONFLICT (code) DO NOTHING;
 
 CREATE INDEX IF NOT EXISTS idx_coupons_code ON public.coupons(code);
+
+-- ==============================================================================
+-- 18. MARKETING CAMPAIGNS & NOTIFICATIONS
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.campaigns (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    campaign_name TEXT NOT NULL,
+    start_date DATE,
+    end_date DATE,
+    target_audience TEXT DEFAULT 'All Users',
+    campaign_description TEXT,
+    status TEXT DEFAULT 'Active' CHECK (status IN ('Active', 'Scheduled', 'Completed', 'Draft')),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ==============================================================================
+-- 19. DELIVERY ZONES & COVERAGE
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.delivery_zones (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    zone_name TEXT NOT NULL,
+    city TEXT DEFAULT 'Sultanpur',
+    state TEXT DEFAULT 'Uttar Pradesh',
+    pincodes TEXT[] DEFAULT '{}',
+    status TEXT DEFAULT 'Active' CHECK (status IN ('Active', 'Inactive')),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ==============================================================================
+-- 20. ASSIGNED ORDERS & DISPATCH LOGISTICS
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.assigned_orders (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    order_id TEXT NOT NULL,
+    delivery_partner_id UUID REFERENCES public.delivery_partners(id) ON DELETE SET NULL,
+    delivery_partner_name TEXT,
+    customer_name TEXT,
+    customer_phone TEXT,
+    delivery_address TEXT,
+    order_status TEXT DEFAULT 'Dispatched',
+    assigned_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ==============================================================================
+-- 21. WALLET TRANSACTIONS & PROMOTIONAL CREDITS
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.wallet_transactions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    customer_id UUID REFERENCES public.customers(id) ON DELETE SET NULL,
+    customer_name TEXT,
+    amount NUMERIC(12, 2) NOT NULL,
+    transaction_type TEXT DEFAULT 'Credit' CHECK (transaction_type IN ('Credit', 'Debit')),
+    description TEXT DEFAULT 'Admin Promotional Wallet Credit',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ==============================================================================
+-- 22. RETURN REQUESTS & REFUNDS
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.return_requests (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    req_id TEXT UNIQUE NOT NULL,
+    order_id TEXT NOT NULL,
+    customer_name TEXT NOT NULL,
+    request_date DATE DEFAULT CURRENT_DATE,
+    reason TEXT NOT NULL,
+    refund_amount NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+    status TEXT DEFAULT 'PENDING APPROVAL' CHECK (status IN ('PENDING APPROVAL', 'APPROVED & REFUNDED', 'REJECTED')),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
 
 -- Enable Row Level Security (RLS) on all public tables
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
@@ -678,6 +812,11 @@ ALTER TABLE public.delivery_partners ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_tickets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_ticket_replies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.campaigns ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.delivery_zones ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.assigned_orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.wallet_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.return_requests ENABLE ROW LEVEL SECURITY;
 
 -- Create fine-grained policies for all tables to ensure RLS compliance with Supabase Linter
 DO $$
@@ -689,7 +828,8 @@ DECLARE
         'return_reasons', 'dispatch_manifests', 'referral_configs', 'tax_rules',
         'platform_settings', 'homepage_top_categories', 'homepage_sliders',
         'custom_website_sections', 'promotional_banners', 'warehouses', 'delivery_partners',
-        'coupons', 'support_tickets', 'support_ticket_replies'
+        'coupons', 'support_tickets', 'support_ticket_replies', 'campaigns',
+        'delivery_zones', 'assigned_orders', 'wallet_transactions', 'return_requests'
     ];
 BEGIN
     FOREACH tbl IN ARRAY tables LOOP

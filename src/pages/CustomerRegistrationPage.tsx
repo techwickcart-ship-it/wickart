@@ -20,6 +20,10 @@ export function CustomerRegistrationPage() {
   const [pincode, setPincode] = useState('');
   const [referralCodeInput, setReferralCodeInput] = useState('');
   const [registerAsVendor, setRegisterAsVendor] = useState(false);
+  const [vendorStoreName, setVendorStoreName] = useState('');
+  const [isStoreNameManual, setIsStoreNameManual] = useState(false);
+  const [agreeTerms, setAgreeTerms] = useState(true);
+  const [agreePrivacy, setAgreePrivacy] = useState(true);
   const [loginCredential, setLoginCredential] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -30,6 +34,13 @@ export function CustomerRegistrationPage() {
   const [savedName, setSavedName] = useState(() => {
     return localStorage.getItem('customerName') || 'Customer User';
   });
+
+  const handleFullNameChange = (val: string) => {
+    setFullName(val);
+    if (!isStoreNameManual) {
+      setVendorStoreName(val.trim() ? `${val.trim()}'s Store` : '');
+    }
+  };
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,7 +80,13 @@ export function CustomerRegistrationPage() {
       return;
     }
 
+    if (!agreeTerms || !agreePrivacy) {
+      setErrorMsg('Please agree to both Terms & Conditions and Privacy Policy to create your account.');
+      return;
+    }
+
     const nameToSave = fullName.trim();
+    const effectiveStoreName = (vendorStoreName.trim() || `${nameToSave}'s Store`);
     localStorage.setItem('isCustomerLoggedIn', 'true');
     localStorage.setItem('customerName', nameToSave);
 
@@ -86,7 +103,7 @@ export function CustomerRegistrationPage() {
     if (registerAsVendor) {
       marketplaceStore.addVendorRegistration({
         name: nameToSave,
-        businessName: `${nameToSave}'s Store`,
+        businessName: effectiveStoreName,
         email: email.trim(),
         phone: mobileDigits,
         city: city.trim(),
@@ -296,7 +313,7 @@ export function CustomerRegistrationPage() {
                            required 
                            type="text" 
                            value={fullName}
-                           onChange={(e) => setFullName(e.target.value)}
+                           onChange={(e) => handleFullNameChange(e.target.value)}
                            placeholder="John Doe" 
                            className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all" 
                          />
@@ -394,36 +411,67 @@ export function CustomerRegistrationPage() {
 
                 {/* Terms & Submit */}
                 <div className="p-6 md:p-8 space-y-4 bg-slate-50/50">
-                   <label className="flex items-center gap-3 cursor-pointer bg-blue-50/80 border border-blue-200 p-3.5 rounded-xl">
+                   <div className="space-y-3 bg-blue-50/80 border border-blue-200 p-4 rounded-xl">
+                     <label className="flex items-center gap-3 cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={registerAsVendor}
+                          onChange={(e) => setRegisterAsVendor(e.target.checked)}
+                          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" 
+                        />
+                        <div>
+                          <span className="text-sm font-bold text-blue-900 block">Also register my account as a Vendor / Seller</span>
+                          <span className="text-xs text-blue-700 font-medium block">Your vendor profile will be submitted to Admin Panel for approval.</span>
+                        </div>
+                     </label>
+
+                     {registerAsVendor && (
+                       <div className="pt-2 pl-7 border-t border-blue-200/60 mt-2">
+                         <label className="block text-xs font-bold text-blue-950 mb-1">
+                           Store Display Name (Auto-fetched / Editable) *
+                         </label>
+                         <input 
+                           type="text" 
+                           value={vendorStoreName}
+                           onChange={(e) => {
+                             setIsStoreNameManual(true);
+                             setVendorStoreName(e.target.value);
+                           }}
+                           placeholder="e.g. John's Mart"
+                           className="w-full px-3.5 py-2 bg-white border border-blue-300 rounded-lg text-sm focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none font-medium"
+                         />
+                         <p className="text-[11px] text-blue-700 mt-1">Store name auto-fetched based on your full name or customized by you.</p>
+                       </div>
+                     )}
+                   </div>
+
+                   <label className="flex items-center gap-3 cursor-pointer">
                       <input 
                         type="checkbox" 
-                        checked={registerAsVendor}
-                        onChange={(e) => setRegisterAsVendor(e.target.checked)}
+                        checked={agreeTerms}
+                        onChange={(e) => setAgreeTerms(e.target.checked)}
                         className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" 
                       />
-                      <div>
-                        <span className="text-sm font-bold text-blue-900 block">Also register my account as a Vendor / Seller</span>
-                        <span className="text-xs text-blue-700 font-medium block">Your vendor profile will be submitted to Admin Panel for approval.</span>
-                      </div>
+                      <span className="text-sm font-medium text-slate-700">I agree to the Terms & Conditions <span className="text-red-500">*</span></span>
                    </label>
 
-                   {[
-                      'I agree to the Terms & Conditions',
-                      'I agree to the Privacy Policy'
-                   ].map((term, i) => (
-                      <label key={i} className="flex items-center gap-3 cursor-pointer">
-                         <input required type="checkbox" className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
-                         <span className="text-sm font-medium text-slate-700">{term} <span className="text-red-500">*</span></span>
-                      </label>
-                   ))}
+                   <label className="flex items-center gap-3 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={agreePrivacy}
+                        onChange={(e) => setAgreePrivacy(e.target.checked)}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" 
+                      />
+                      <span className="text-sm font-medium text-slate-700">I agree to the Privacy Policy <span className="text-red-500">*</span></span>
+                   </label>
                    
                    <div className="pt-6 mt-4">
-                      <button type="submit" className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm mb-4 transition-colors">
+                      <button type="submit" className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm mb-4 transition-colors cursor-pointer">
                          Register Account
                       </button>
                       <p className="text-center text-sm font-medium text-slate-500">
                          Already have an account?{' '}
-                         <button type="button" onClick={() => setMode('login')} className="text-blue-600 hover:text-blue-700 hover:underline bg-transparent border-0 cursor-pointer">
+                         <button type="button" onClick={() => setMode('login')} className="text-blue-600 hover:text-blue-700 hover:underline bg-transparent border-0 cursor-pointer font-bold">
                            Login
                          </button>
                       </p>

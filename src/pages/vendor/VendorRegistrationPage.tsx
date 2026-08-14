@@ -202,9 +202,17 @@ export function VendorRegistrationPage() {
     } else if (currentStep === 2) {
       const addr = (formData.address1 || '').trim();
       const city = (formData.city || '').trim();
-      const pincode = (formData.postalCode || '').trim();
-      if (!addr || !city || !pincode) {
-        setStepError('Please enter your Store Address, City, and PIN Code.');
+      const pincodeDigits = (formData.postalCode || '').replace(/\D/g, '');
+      if (!addr) {
+        setStepError('Please enter your Store Address Line 1.');
+        return;
+      }
+      if (!city) {
+        setStepError('Please enter your City.');
+        return;
+      }
+      if (!pincodeDigits || pincodeDigits.length !== 6) {
+        setStepError(`Please enter a valid 6-digit postal PIN Code (currently ${pincodeDigits.length} digits entered).`);
         return;
       }
     } else if (currentStep === 3) {
@@ -226,9 +234,29 @@ export function VendorRegistrationPage() {
         setStepError('PAN Card Number must be 10 characters (e.g. ABCDE1234F).');
         return;
       }
+      if (formData.fssai && formData.fssai.trim()) {
+        const cleanFssai = formData.fssai.replace(/\D/g, '');
+        if (cleanFssai.length !== 14) {
+          setStepError(`FSSAI Food License Number must be exactly 14 numeric digits (currently ${cleanFssai.length} digits entered).`);
+          return;
+        }
+      }
     } else if (currentStep === 4) {
-      if (!formData.accountHolder?.trim() || !formData.bankName?.trim() || !formData.accountNumber?.trim() || !formData.ifsc?.trim()) {
-        setStepError('Please fill out all required Bank & Settlement Details.');
+      if (!formData.accountHolder?.trim()) {
+        setStepError('Please enter the Bank Account Holder Name.');
+        return;
+      }
+      if (!formData.bankName?.trim()) {
+        setStepError('Please enter the Bank Name.');
+        return;
+      }
+      const cleanAcc = (formData.accountNumber || '').replace(/\D/g, '');
+      if (!cleanAcc || cleanAcc.length < 9 || cleanAcc.length > 18) {
+        setStepError('Bank Account Number must be between 9 and 18 numeric digits.');
+        return;
+      }
+      if (!formData.ifsc?.trim()) {
+        setStepError('Please enter your bank IFSC Code.');
         return;
       }
     }
@@ -520,11 +548,35 @@ export function VendorRegistrationPage() {
                   <input type="text" value={formData.city} onChange={e => updateField('city', e.target.value)} placeholder="e.g. Mumbai" className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 outline-none" />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-700 mb-1 block">State & Pincode *</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-slate-700">State & Pincode *</label>
+                    <span className={`text-[11px] font-bold ${
+                      (formData.postalCode || '').length === 6 ? 'text-emerald-600' : 'text-slate-400'
+                    }`}>
+                      {(formData.postalCode || '').length}/6 Digits
+                    </span>
+                  </div>
                   <div className="flex gap-2">
                     <input type="text" value={formData.state} onChange={e => updateField('state', e.target.value)} placeholder="State" className="w-2/3 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 outline-none" />
-                    <input type="text" value={formData.postalCode} onChange={e => updateField('postalCode', e.target.value)} placeholder="Pincode" className="w-1/3 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 outline-none" />
+                    <input 
+                      type="text" 
+                      inputMode="numeric"
+                      pattern="[0-9]{6}"
+                      maxLength={6}
+                      value={formData.postalCode} 
+                      onChange={e => {
+                        const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 6);
+                        updateField('postalCode', digitsOnly);
+                      }} 
+                      placeholder="6-digit PIN" 
+                      className={`w-1/3 px-3.5 py-2.5 bg-slate-50 border rounded-xl text-sm font-mono tracking-wider outline-none transition-all ${
+                        (formData.postalCode || '').length === 6
+                          ? 'border-emerald-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100'
+                          : 'border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
+                      }`} 
+                    />
                   </div>
+                  <p className="text-[11px] text-slate-500 mt-1">PIN code must be exactly 6 numeric digits.</p>
                 </div>
 
 
@@ -630,8 +682,32 @@ export function VendorRegistrationPage() {
                     <p className="text-[11px] text-slate-500 mt-1">15-character alphanumeric Goods & Services Tax ID (0-9, A-Z)</p>
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-700 mb-1 block">FSSAI License (If Food/Grocery)</label>
-                    <input type="text" value={formData.fssai} onChange={e => updateField('fssai', e.target.value)} className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:border-blue-500 outline-none" placeholder="14-digit license number" />
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-slate-700">FSSAI License (If Food/Grocery)</label>
+                      <span className={`text-[11px] font-bold ${
+                        (formData.fssai || '').length === 14 ? 'text-emerald-600' : 'text-slate-400'
+                      }`}>
+                        {(formData.fssai || '').length}/14 Digits
+                      </span>
+                    </div>
+                    <input 
+                      type="text" 
+                      inputMode="numeric"
+                      pattern="[0-9]{14}"
+                      maxLength={14}
+                      value={formData.fssai} 
+                      onChange={e => {
+                        const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 14);
+                        updateField('fssai', digitsOnly);
+                      }} 
+                      className={`w-full px-3.5 py-2.5 bg-white border rounded-xl text-sm font-mono tracking-wider outline-none transition-all ${
+                        (formData.fssai || '').length === 14
+                          ? 'border-emerald-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100'
+                          : 'border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
+                      }`} 
+                      placeholder="14-digit FSSAI number" 
+                    />
+                    <p className="text-[11px] text-slate-500 mt-1">Numbers only. Exactly 14 digits for food & grocery businesses.</p>
                   </div>
                   <div>
                     <label className="text-xs font-bold text-slate-700 mb-1 block">Tax Registration Category</label>
@@ -667,8 +743,32 @@ export function VendorRegistrationPage() {
                   <input type="text" value={formData.branch} onChange={e => updateField('branch', e.target.value)} className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 outline-none" placeholder="e.g. Fort Branch" />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-700 mb-1 block">Account Number *</label>
-                  <input type="text" value={formData.accountNumber} onChange={e => updateField('accountNumber', e.target.value)} className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-blue-500 outline-none" placeholder="501000..." />
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-slate-700">Account Number *</label>
+                    <span className={`text-[11px] font-bold ${
+                      (formData.accountNumber || '').length >= 9 && (formData.accountNumber || '').length <= 18 ? 'text-emerald-600' : 'text-slate-400'
+                    }`}>
+                      {(formData.accountNumber || '').length} Digits (9-18)
+                    </span>
+                  </div>
+                  <input 
+                    type="text" 
+                    inputMode="numeric"
+                    pattern="[0-9]{9,18}"
+                    maxLength={18}
+                    value={formData.accountNumber} 
+                    onChange={e => {
+                      const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 18);
+                      updateField('accountNumber', digitsOnly);
+                    }} 
+                    className={`w-full px-3.5 py-2.5 bg-white border rounded-xl text-sm font-mono tracking-wider outline-none transition-all ${
+                      (formData.accountNumber || '').length >= 9 && (formData.accountNumber || '').length <= 18
+                        ? 'border-emerald-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100'
+                        : 'border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
+                    }`} 
+                    placeholder="9 to 18 digit account number" 
+                  />
+                  <p className="text-[11px] text-slate-500 mt-1">Numbers only. Alphabets are not accepted.</p>
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-700 mb-1 block">IFSC Code *</label>

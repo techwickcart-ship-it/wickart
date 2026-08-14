@@ -277,6 +277,7 @@ export const marketplaceStore = {
     const list = this.getProducts();
     const numericIds = list.map(p => typeof p.id === 'number' ? p.id : (parseInt(String(p.id)) || 0)).filter(n => !isNaN(n));
     const newId = numericIds.length > 0 ? Math.max(...numericIds) + 1 : Date.now();
+    const targetStock = product.stock !== undefined && product.stock !== null ? Number(product.stock) : 100;
     const item: Product = {
       id: newId,
       name: product.name || 'Unnamed Product',
@@ -287,6 +288,7 @@ export const marketplaceStore = {
       tag: product.tag || 'New',
       vendor: product.vendor || 'City Square Mart',
       sellerId: product.sellerId || '1',
+      stock: targetStock,
       shortDescription: product.shortDescription || product.description || '',
       description: product.description || '',
       category: product.category || 'General',
@@ -306,8 +308,8 @@ export const marketplaceStore = {
         id: `PRD-${newId}`,
         name: item.name,
         vendor: item.vendor,
-        stock: 50,
-        status: 'In Stock'
+        stock: targetStock,
+        status: targetStock > 0 ? 'In Stock' : 'Out of Stock'
       });
       this.saveGlobalInventory(invList);
     } catch (e) {
@@ -316,6 +318,7 @@ export const marketplaceStore = {
 
     // Background sync to Supabase database
     this.saveProductToSupabase(item).catch(err => console.warn('Product bg save error:', err));
+    this.dispatchAllEvents();
 
     return item;
   },
@@ -325,8 +328,25 @@ export const marketplaceStore = {
     if (index !== -1) {
       list[index] = { ...list[index], ...updatedFields };
       this.saveProducts(list);
+
+      // Sync stock update to global inventory
+      if (updatedFields.stock !== undefined) {
+        try {
+          const invList = this.getGlobalInventory();
+          const targetInv = invList.find(i => i.id === `PRD-${id}` || i.id === String(id) || i.name === list[index].name);
+          if (targetInv) {
+            targetInv.stock = Number(updatedFields.stock);
+            targetInv.status = targetInv.stock > 0 ? 'In Stock' : 'Out of Stock';
+            this.saveGlobalInventory(invList);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
       // Background sync to Supabase database
       this.saveProductToSupabase(list[index]).catch(err => console.warn('Product bg update error:', err));
+      this.dispatchAllEvents();
       return list[index];
     }
     return null;

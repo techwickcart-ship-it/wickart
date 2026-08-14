@@ -33,7 +33,7 @@ export function SellerInventoryPage() {
   // Dynamic inventory items directly mapped from real product stock (persisted)
   const inventoryItems = sellerProducts.map(p => {
     const override = stockUpdates[String(p.id)];
-    const parsedStock = typeof p.stock === 'number' ? p.stock : (p.stock !== undefined ? parseInt(String(p.stock)) : 50);
+    const parsedStock = typeof p.stock === 'number' ? p.stock : (p.stock !== undefined ? parseInt(String(p.stock)) : 100);
     const stock = override !== undefined ? override : (isNaN(parsedStock) ? 0 : parsedStock);
     const threshold = 10;
     const status = stock === 0 ? 'Out of Stock' : stock <= threshold ? 'Low Stock' : 'In Stock';

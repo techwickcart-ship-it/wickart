@@ -73,7 +73,7 @@ export function SellerProductsPage({ initialTab }: SellerProductsPageProps) {
     setEditBrand(prod.brand || 'Generic');
     setEditPrice(String(prod.price || '').replace(/[^0-9.]/g, ''));
     setEditMrp(String(prod.mrp || '').replace(/[^0-9.]/g, ''));
-    setEditStock(String(prod.stock || 100));
+    setEditStock(prod.stock !== undefined && prod.stock !== null ? String(prod.stock) : '100');
     setEditImage(prod.image || '');
     setEditShortDesc(prod.shortDescription || '');
     setEditDesc(prod.description || '');
@@ -194,10 +194,7 @@ export function SellerProductsPage({ initialTab }: SellerProductsPageProps) {
       tag: editIsCombo ? (editComboTag || 'SUPER COMBO') : 'Approved & Live'
     };
 
-    const list = marketplaceStore.getProducts();
-    const updatedList = list.map(p => String(p.id) === String(editingProduct.id) ? updatedProduct : p);
-    marketplaceStore.saveProducts(updatedList);
-    marketplaceStore.saveProductToSupabase(updatedProduct).catch(() => {});
+    marketplaceStore.updateProduct(editingProduct.id, updatedProduct);
 
     setEditingProduct(null);
     setToastMessage(`Product "${updatedProduct.name}" updated successfully!`);

@@ -258,6 +258,7 @@ export function AddProductPage({ onNavigate }: AddProductPageProps) {
       media: mediaList,
       images: mediaList,
       sellerId,
+      stock: parseInt(totalAllowedQty) || 100,
       vendor: activeSeller ? activeSeller.storeName : (sellerId === 'main' ? 'Main Admin Store' : (sellers[0]?.storeName || 'Main Store')),
       image: primaryImage,
       shortDescription: shortDescription || description || '',

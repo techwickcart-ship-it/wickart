@@ -1673,12 +1673,6 @@ export const marketplaceStore = {
 
   getCustomers(): any[] {
     const list = getStored('customers', INITIAL_CUSTOMERS);
-    const MOCK_CUST_EMAILS = ['alok@example.com', 'vikas@example.com', 'priya@example.com'];
-    const cleanList = list.filter(c => c.email && !MOCK_CUST_EMAILS.includes(c.email.toLowerCase()));
-    if (cleanList.length !== list.length) {
-      this.saveCustomers(cleanList);
-      return cleanList;
-    }
     return list;
   },
   saveCustomers(list: any[]): void {
@@ -1823,12 +1817,6 @@ export const marketplaceStore = {
   // VENDOR REGISTRATIONS
   getVendorRegistrations(): VendorRegistration[] {
     const list = getStored('vendorRegistrations', INITIAL_VENDOR_REGISTRATIONS);
-    const MOCK_EMAILS = ['alok@citysquare.com', 'ravi@siliconvalley.com', 'suhani@freshorganic.com', 'amit@groceryhub.com'];
-    const cleanList = list.filter(v => v.email && !MOCK_EMAILS.includes(v.email.toLowerCase()));
-    if (cleanList.length !== list.length) {
-      this.saveVendorRegistrations(cleanList);
-      return cleanList;
-    }
     return list;
   },
   saveVendorRegistrations(list: VendorRegistration[]): void {

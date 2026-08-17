@@ -148,8 +148,25 @@ export interface Warehouse {
   status: 'Active' | 'Inactive' | 'Maintenance';
 }
 
-// Initial Clean Arrays (No pre-uploaded mock data)
-const INITIAL_BRANDS: Brand[] = [];
+// Initial Categories & Brands for Marketplace taxonomy
+const INITIAL_CATEGORIES: any[] = [
+  { id: 'cat-1', name: 'Groceries & Daily Essentials', image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=300&auto=format&fit=crop&q=60', status: 'Active', count: 0 },
+  { id: 'cat-2', name: 'Electronics & Mobiles', image: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=300&auto=format&fit=crop&q=60', status: 'Active', count: 0 },
+  { id: 'cat-3', name: 'Fashion & Clothing', image: 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=300&auto=format&fit=crop&q=60', status: 'Active', count: 0 },
+  { id: 'cat-4', name: 'Home & Kitchen', image: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=300&auto=format&fit=crop&q=60', status: 'Active', count: 0 },
+  { id: 'cat-5', name: 'Beauty & Personal Care', image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=300&auto=format&fit=crop&q=60', status: 'Active', count: 0 },
+  { id: 'cat-6', name: 'Fresh Fruits & Vegetables', image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=300&auto=format&fit=crop&q=60', status: 'Active', count: 0 }
+];
+
+const INITIAL_BRANDS: Brand[] = [
+  { id: 'brand-1', name: 'Amul', status: 'active', count: 0 },
+  { id: 'brand-2', name: 'Tata', status: 'active', count: 0 },
+  { id: 'brand-3', name: 'Fortune', status: 'active', count: 0 },
+  { id: 'brand-4', name: 'Samsung', status: 'active', count: 0 },
+  { id: 'brand-5', name: 'Boat', status: 'active', count: 0 },
+  { id: 'brand-6', name: 'Nestle', status: 'active', count: 0 }
+];
+
 const INITIAL_PRODUCTS: Product[] = [];
 const INITIAL_ORDERS: Order[] = [];
 const INITIAL_SELLERS: Seller[] = [];
@@ -193,7 +210,6 @@ export interface VendorRegistration {
 const INITIAL_TAX_RULES: TaxRule[] = [];
 
 const INITIAL_VENDOR_REGISTRATIONS: VendorRegistration[] = [];
-const INITIAL_CATEGORIES: any[] = [];
 const INITIAL_SUBCATEGORIES: any[] = [];
 const INITIAL_CUSTOMERS: any[] = [];
 const INITIAL_WITHDRAWALS: any[] = [];
@@ -228,11 +244,16 @@ export function isAuthOrApiKeyError(error: any): boolean {
 function getStored<T>(key: string, fallback: T): T {
   try {
     const val = localStorage.getItem(key);
-    if (val !== null) {
-      return JSON.parse(val);
+    if (val !== null && val !== '') {
+      const parsed = JSON.parse(val);
+      // If parsed is empty array but fallback has items (like categories/brands), fallback
+      if (Array.isArray(parsed) && parsed.length === 0 && Array.isArray(fallback) && fallback.length > 0) {
+        return fallback;
+      }
+      return parsed;
     }
     if (key === 'companyName') return 'Wikcart' as any as T;
-    return [] as any as T;
+    return fallback;
   } catch (e) {
     return fallback;
   }

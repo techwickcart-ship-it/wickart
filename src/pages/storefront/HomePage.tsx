@@ -252,24 +252,40 @@ export function HomePage({
           </div>
 
           {/* Hot Deals Products Grid */}
-          <div className="flex-1 grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full">
-            {hotDeals.map(prod => (
-              <ProductCard 
-                key={prod.id} 
-                product={prod} 
-                cartItems={cartItems}
-                onNavigate={onNavigate} 
-                onViewProduct={onViewProduct} 
-                onAddToCart={onAddToCart} 
-                onUpdateQuantity={onUpdateQuantity}
-                onRemoveFromCart={onRemoveFromCart}
-                onWishlist={onWishlist} 
-                onCompare={onCompare} 
-                onQuickView={onQuickView} 
-                isWishlisted={wishlistIds.has(String(prod.id)) || wishlistIds.has(prod.id)}
-                isCompared={compareIds.has(String(prod.id)) || compareIds.has(prod.id)}
-              />
-            ))}
+          <div className="flex-1 w-full">
+            {hotDeals.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full">
+                {hotDeals.map(prod => (
+                  <ProductCard 
+                    key={prod.id} 
+                    product={prod} 
+                    cartItems={cartItems}
+                    onNavigate={onNavigate} 
+                    onViewProduct={onViewProduct} 
+                    onAddToCart={onAddToCart} 
+                    onUpdateQuantity={onUpdateQuantity}
+                    onRemoveFromCart={onRemoveFromCart}
+                    onWishlist={onWishlist} 
+                    onCompare={onCompare} 
+                    onQuickView={onQuickView} 
+                    isWishlisted={wishlistIds.has(String(prod.id)) || wishlistIds.has(prod.id)}
+                    isCompared={compareIds.has(String(prod.id)) || compareIds.has(prod.id)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 text-center border border-white/20 flex flex-col items-center justify-center">
+                <Gift className="w-10 h-10 text-white/80 mb-2" />
+                <p className="font-bold text-white text-base">Exclusive Flash Deals Coming Soon</p>
+                <p className="text-xs text-blue-100 mt-1 max-w-sm">Local verified vendors from Sultanpur are preparing exciting discounts for you.</p>
+                <button 
+                  onClick={() => onNavigate('Products')} 
+                  className="mt-4 px-4 py-2 bg-white text-blue-700 font-bold text-xs rounded-xl hover:bg-blue-50 transition-colors"
+                >
+                  Browse Catalog
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -283,25 +299,51 @@ export function HomePage({
             </div>
             <button onClick={() => onNavigate('Products')} className="text-blue-600 font-bold text-xs sm:text-sm hover:underline">View All</button>
          </div>
-         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 md:gap-6">
-            {popularProducts.map(prod => (
-              <ProductCard 
-                key={prod.id} 
-                product={prod} 
-                cartItems={cartItems}
-                onNavigate={onNavigate} 
-                onViewProduct={onViewProduct} 
-                onAddToCart={onAddToCart} 
-                onUpdateQuantity={onUpdateQuantity}
-                onRemoveFromCart={onRemoveFromCart}
-                onWishlist={onWishlist} 
-                onCompare={onCompare} 
-                onQuickView={onQuickView} 
-                isWishlisted={wishlistIds.has(String(prod.id)) || wishlistIds.has(prod.id)}
-                isCompared={compareIds.has(String(prod.id)) || compareIds.has(prod.id)}
-              />
-            ))}
-         </div>
+         {popularProducts.length > 0 ? (
+           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 md:gap-6">
+              {popularProducts.map(prod => (
+                <ProductCard 
+                  key={prod.id} 
+                  product={prod} 
+                  cartItems={cartItems}
+                  onNavigate={onNavigate} 
+                  onViewProduct={onViewProduct} 
+                  onAddToCart={onAddToCart} 
+                  onUpdateQuantity={onUpdateQuantity}
+                  onRemoveFromCart={onRemoveFromCart}
+                  onWishlist={onWishlist} 
+                  onCompare={onCompare} 
+                  onQuickView={onQuickView} 
+                  isWishlisted={wishlistIds.has(String(prod.id)) || wishlistIds.has(prod.id)}
+                  isCompared={compareIds.has(String(prod.id)) || compareIds.has(prod.id)}
+                />
+              ))}
+           </div>
+         ) : (
+           <div className="bg-slate-50 border border-slate-200/80 rounded-3xl p-8 sm:p-12 text-center max-w-2xl mx-auto">
+             <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+               <Gift className="w-8 h-8" />
+             </div>
+             <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2">Store Catalog is Ready</h3>
+             <p className="text-slate-500 text-xs sm:text-sm mb-6 leading-relaxed">
+               Are you a merchant or store owner in Sultanpur? Register your business today to start selling products directly to local customers.
+             </p>
+             <div className="flex flex-wrap items-center justify-center gap-3">
+               <a 
+                 href="/vendor-registration" 
+                 className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md transition-all"
+               >
+                 Register as a Seller
+               </a>
+               <a 
+                 href="/admin" 
+                 className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md transition-all"
+               >
+                 Admin Login
+               </a>
+             </div>
+           </div>
+         )}
       </section>
 
       {/* Special Offers Banner */}
@@ -327,34 +369,36 @@ export function HomePage({
       </section>
 
       {/* Newly Added Products */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 border-t border-slate-100">
-         <div className="flex items-end justify-between gap-4 mb-6 sm:mb-8">
-            <div>
-               <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">New Arrivals</h2>
-               <p className="text-slate-500 mt-0.5 sm:mt-1 text-xs sm:text-sm">Freshly added items from local stores.</p>
-            </div>
-            <button onClick={() => onNavigate('Products')} className="text-blue-600 font-bold text-xs sm:text-sm hover:underline">View All</button>
-         </div>
-         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 md:gap-6">
-            {newProducts.map(prod => (
-              <ProductCard 
-                key={prod.id} 
-                product={prod} 
-                cartItems={cartItems}
-                onNavigate={onNavigate} 
-                onViewProduct={onViewProduct} 
-                onAddToCart={onAddToCart} 
-                onUpdateQuantity={onUpdateQuantity}
-                onRemoveFromCart={onRemoveFromCart}
-                onWishlist={onWishlist} 
-                onCompare={onCompare} 
-                onQuickView={onQuickView} 
-                isWishlisted={wishlistIds.has(String(prod.id)) || wishlistIds.has(prod.id)}
-                isCompared={compareIds.has(String(prod.id)) || compareIds.has(prod.id)}
-              />
-            ))}
-         </div>
-      </section>
+      {newProducts.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 border-t border-slate-100">
+           <div className="flex items-end justify-between gap-4 mb-6 sm:mb-8">
+              <div>
+                 <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">New Arrivals</h2>
+                 <p className="text-slate-500 mt-0.5 sm:mt-1 text-xs sm:text-sm">Freshly added items from local stores.</p>
+              </div>
+              <button onClick={() => onNavigate('Products')} className="text-blue-600 font-bold text-xs sm:text-sm hover:underline">View All</button>
+           </div>
+           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 md:gap-6">
+              {newProducts.map(prod => (
+                <ProductCard 
+                  key={prod.id} 
+                  product={prod} 
+                  cartItems={cartItems}
+                  onNavigate={onNavigate} 
+                  onViewProduct={onViewProduct} 
+                  onAddToCart={onAddToCart} 
+                  onUpdateQuantity={onUpdateQuantity}
+                  onRemoveFromCart={onRemoveFromCart}
+                  onWishlist={onWishlist} 
+                  onCompare={onCompare} 
+                  onQuickView={onQuickView} 
+                  isWishlisted={wishlistIds.has(String(prod.id)) || wishlistIds.has(prod.id)}
+                  isCompared={compareIds.has(String(prod.id)) || compareIds.has(prod.id)}
+                />
+              ))}
+           </div>
+        </section>
+      )}
 
     </div>
   );

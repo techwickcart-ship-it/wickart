@@ -2636,6 +2636,8 @@ export const marketplaceStore = {
     playStoreBadge: string;
     appleStoreBadge: string;
     appImage: string;
+    playStoreLink: string;
+    appleStoreLink: string;
   } {
     return getStored('mediaAssets', {
       logo: '',
@@ -2643,12 +2645,54 @@ export const marketplaceStore = {
       loginBgImage: '',
       playStoreBadge: '',
       appleStoreBadge: '',
-      appImage: ''
+      appImage: '',
+      playStoreLink: 'https://play.google.com/store/apps/details?id=com.wikcart.app',
+      appleStoreLink: 'https://apps.apple.com/app/wikcart/id123456789'
     });
   },
   saveMediaAssets(assets: any): void {
     setStored('mediaAssets', assets);
     window.dispatchEvent(new Event('store_mediaAssets_updated'));
+  },
+
+  getPolicies(): {
+    terms: string;
+    privacy: string;
+    shipping: string;
+    returns: string;
+    about: string;
+  } {
+    return getStored('policies', {
+      terms: `Welcome to Wikcart. By accessing or using our hyper-local marketplace platform, you agree to comply with and be bound by the following terms and conditions.
+
+1. Eligibility: Users must be 18 years or older to place orders or register as vendors.
+2. Service Area: All order fulfillments and fast deliveries are currently restricted to the municipal limits of Sultanpur, Uttar Pradesh.
+3. Pricing & Taxes: All prices listed on the store are transparent and inclusive of applicable GST unless explicitly stated otherwise.
+4. Account Responsibility: Users are responsible for maintaining the confidentiality of their account credentials and activity.
+5. Vendor Commitments: Sellers are required to ensure genuine product quality, accurate batch descriptions, and prompt dispatch of orders.`,
+      privacy: `At Wikcart, we value the trust you place in us. This Privacy Policy describes how we collect, handle, and protect your personal information.
+
+1. Information Collected: We collect your name, delivery address in Sultanpur, contact phone number, email, and order transaction details.
+2. Use of Information: Your data is solely used to process orders, facilitate instant delivery via our delivery fleet, and provide customer support.
+3. Data Protection: We never sell, trade, or rent your personal identification information to third parties.
+4. Payment Security: Financial transactions are processed through encrypted, RBI-compliant payment gateways.`,
+      shipping: `Wikcart operates a dedicated local delivery network across Sultanpur, UP.
+
+1. Hyperlocal Delivery: Standard grocery, dairy, and essential orders are typically delivered within 2 hours or within the requested time slot.
+2. Delivery Zones: Delivery is available across all registered pincodes and sectors in Sultanpur district.
+3. Delivery Charges: Orders above ₹499 qualify for FREE delivery. A nominal delivery fee of ₹20 applies to orders below ₹499.
+4. Live Order Tracking: Customers receive SMS/WhatsApp updates and can track dispatch status in real-time.`,
+      returns: `We want you to be completely satisfied with every purchase from Wikcart.
+
+1. Return Window: Perishable goods (vegetables, dairy, fresh items) can be returned at the time of delivery if quality does not meet expectations. Non-perishable items can be returned within 48 hours.
+2. Refund Method: Refunds are processed within 2-4 business days directly to your original payment method, or credited instantly to your Customer Wallet.
+3. Cancellation: Orders can be cancelled free of charge prior to dispatch from the store counter.`,
+      about: `Wikcart is a premier hyper-local multi-vendor marketplace dedicated to empowering local businesses and serving residents across Sultanpur, Uttar Pradesh. We connect customers with trusted neighbourhood stores for groceries, electronics, fashion, and daily essentials with prompt 2-hour delivery.`
+    });
+  },
+  savePolicies(policies: any): void {
+    setStored('policies', policies);
+    window.dispatchEvent(new Event('store_policies_updated'));
   },
 
   getPaymentGateways(): {
@@ -2657,6 +2701,7 @@ export const marketplaceStore = {
     cashfree: { enabled: boolean; mode: 'test' | 'live'; appId: string; secretKey: string };
     paytm: { enabled: boolean; mode: 'test' | 'live'; merchantId: string; merchantKey: string; websiteName?: string };
     stripe: { enabled: boolean; mode: 'test' | 'live'; publishableKey: string; secretKey: string; webhookSecret?: string };
+    cod: { enabled: boolean; maxAmount: number };
   } {
     return getStored('paymentGateways', {
       phonepe: {
@@ -2693,6 +2738,10 @@ export const marketplaceStore = {
         publishableKey: 'pk_test_51Mz...',
         secretKey: 'sk_test_51Mz...',
         webhookSecret: ''
+      },
+      cod: {
+        enabled: true,
+        maxAmount: 10000
       }
     });
   },

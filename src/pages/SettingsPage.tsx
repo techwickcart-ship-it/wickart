@@ -9,8 +9,12 @@ import {
 import { marketplaceStore, useMarketplaceData } from '../lib/store';
 import { getSupabaseCredentials, reinitSupabaseClient, clearSupabaseCache } from '../lib/supabase';
 
-export function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<'contact' | 'media' | 'payments' | 'general' | 'policies' | 'database' | 'data' | 'security'>('contact');
+interface SettingsPageProps {
+  initialTab?: 'contact' | 'media' | 'payments' | 'general' | 'policies' | 'database' | 'data' | 'security';
+}
+
+export function SettingsPage({ initialTab = 'contact' }: SettingsPageProps) {
+  const [activeTab, setActiveTab] = useState<'contact' | 'media' | 'payments' | 'general' | 'policies' | 'database' | 'data' | 'security'>(initialTab);
   const [companyName, setCompanyName] = useState(() => marketplaceStore.getCompanyName());
   const [dataCleanMsg, setDataCleanMsg] = useState<string | null>(null);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
@@ -23,6 +27,9 @@ export function SettingsPage() {
 
   // 3. PAYMENT GATEWAYS STATE
   const [paymentGateways, setPaymentGateways] = useState(() => marketplaceStore.getPaymentGateways());
+
+  // 4. POLICIES STATE
+  const [policies, setPolicies] = useState(() => marketplaceStore.getPolicies());
 
   // Anti-Copy & Security Settings
   const [codeProtection, setCodeProtection] = useState(() => localStorage.getItem('wikcart_code_protection') !== 'false');
@@ -56,10 +63,17 @@ export function SettingsPage() {
   };
 
   useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
+  useEffect(() => {
     setCompanyName(marketplaceStore.getCompanyName());
     setContactInfo(marketplaceStore.getContactInfo());
     setMediaAssets(marketplaceStore.getMediaAssets());
     setPaymentGateways(marketplaceStore.getPaymentGateways());
+    setPolicies(marketplaceStore.getPolicies());
   }, []);
 
   useEffect(() => {
@@ -150,7 +164,8 @@ export function SettingsPage() {
     marketplaceStore.saveContactInfo(contactInfo);
     marketplaceStore.saveMediaAssets(mediaAssets);
     marketplaceStore.savePaymentGateways(paymentGateways);
-    setSaveSuccessMsg('Platform business settings, contact details, media assets, and payment gateways saved successfully!');
+    marketplaceStore.savePolicies(policies);
+    setSaveSuccessMsg('Platform business settings, contact details, media assets, payment gateways, and policies saved successfully!');
     setTimeout(() => setSaveSuccessMsg(null), 4000);
   };
 
@@ -688,6 +703,44 @@ export function SettingsPage() {
                           />
                         </div>
                       </div>
+                    </div>
+
+                    {/* 7. Google Play Store App Link */}
+                    <div className="p-4 border border-slate-200 rounded-2xl space-y-2 bg-slate-50/50">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                          <ExternalLink className="w-3.5 h-3.5 text-blue-600" />
+                          7. Google Play Store App Link
+                        </label>
+                        <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Storefront Active</span>
+                      </div>
+                      <input
+                        type="url"
+                        placeholder="https://play.google.com/store/apps/details?id=com.wikcart.app"
+                        value={mediaAssets.playStoreLink || ''}
+                        onChange={e => setMediaAssets({ ...mediaAssets, playStoreLink: e.target.value })}
+                        className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl outline-none font-mono focus:ring-2 focus:ring-blue-500 text-slate-900"
+                      />
+                      <p className="text-[11px] text-slate-500">Redirects customers to download your Android app directly from the Google Play Store.</p>
+                    </div>
+
+                    {/* 8. Apple App Store Link */}
+                    <div className="p-4 border border-slate-200 rounded-2xl space-y-2 bg-slate-50/50">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                          <ExternalLink className="w-3.5 h-3.5 text-purple-600" />
+                          8. Apple App Store Link
+                        </label>
+                        <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Storefront Active</span>
+                      </div>
+                      <input
+                        type="url"
+                        placeholder="https://apps.apple.com/app/wikcart/id123456789"
+                        value={mediaAssets.appleStoreLink || ''}
+                        onChange={e => setMediaAssets({ ...mediaAssets, appleStoreLink: e.target.value })}
+                        className="w-full px-3.5 py-2 text-xs bg-white border border-slate-200 rounded-xl outline-none font-mono focus:ring-2 focus:ring-purple-500 text-slate-900"
+                      />
+                      <p className="text-[11px] text-slate-500">Redirects iOS users to download your mobile app directly from the Apple App Store.</p>
                     </div>
 
                   </div>
@@ -1230,6 +1283,55 @@ export function SettingsPage() {
                     </div>
                   </div>
 
+                  {/* 6. Cash on Delivery (COD) */}
+                  <div className="p-5 border border-emerald-200 rounded-2xl bg-emerald-50/20 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-emerald-100">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white font-bold flex items-center justify-center text-sm shadow-xs">
+                          COD
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                            Cash on Delivery (COD)
+                            {(paymentGateways as any).cod?.enabled !== false && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                ACTIVE
+                              </span>
+                            )}
+                          </h3>
+                          <p className="text-xs text-slate-500">Accept cash payment from customer upon delivery in Sultanpur</p>
+                        </div>
+                      </div>
+
+                      <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                        <input
+                          type="checkbox"
+                          checked={(paymentGateways as any).cod?.enabled !== false}
+                          onChange={e => setPaymentGateways({
+                            ...paymentGateways,
+                            cod: { enabled: e.target.checked, maxAmount: (paymentGateways as any).cod?.maxAmount || 10000 }
+                          } as any)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                      </label>
+                    </div>
+
+                    <div className="text-xs">
+                      <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">Max Order Value for COD (₹)</label>
+                      <input
+                        type="number"
+                        value={(paymentGateways as any).cod?.maxAmount || 10000}
+                        onChange={e => setPaymentGateways({
+                          ...paymentGateways,
+                          cod: { enabled: (paymentGateways as any).cod?.enabled !== false, maxAmount: Number(e.target.value) || 10000 }
+                        } as any)}
+                        placeholder="10000"
+                        className="w-full sm:w-64 px-3 py-2 bg-white border border-slate-200 rounded-xl outline-none font-mono text-slate-900"
+                      />
+                    </div>
+                  </div>
+
                   <div className="pt-4 border-t border-slate-100 flex justify-end">
                     <button
                       onClick={handleSaveAll}
@@ -1248,47 +1350,117 @@ export function SettingsPage() {
           {/* TAB 4: LEGAL & POLICIES */}
           {activeTab === 'policies' && (
             <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                <div>
+                  <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <Scale className="w-4 h-4 text-amber-600" />
+                    Legal Policies & Store Information
+                  </h2>
+                  <p className="text-xs text-slate-500">Edit terms, privacy policy, refund guidelines, shipping rules, and about us page content visible on customer storefront.</p>
+                </div>
+                <button
+                  onClick={handleSaveAll}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>Save Policies</span>
+                </button>
+              </div>
+
+              {/* 1. Terms & Conditions */}
               <Card>
-                <CardHeader>
-                  <CardTitle className="text-base font-bold text-slate-900">Terms & Conditions</CardTitle>
-                  <CardDescription className="text-xs">Define the rules and guidelines users must agree to.</CardDescription>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-bold text-slate-900">Terms & Conditions</CardTitle>
+                  <CardDescription className="text-xs">Define the platform rules, user agreements, and service guidelines.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <textarea
-                    rows={5}
+                    rows={6}
+                    value={policies.terms}
+                    onChange={e => setPolicies({ ...policies, terms: e.target.value })}
                     placeholder="Enter your Terms and Conditions here..."
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-y"
                   />
                 </CardContent>
               </Card>
 
+              {/* 2. Privacy Policy */}
               <Card>
-                <CardHeader>
-                  <CardTitle className="text-base font-bold text-slate-900">Privacy Policy</CardTitle>
-                  <CardDescription className="text-xs">Detail how you collect, use, and protect user data.</CardDescription>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-bold text-slate-900">Privacy Policy</CardTitle>
+                  <CardDescription className="text-xs">Detail how user data is collected, protected, and processed.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <textarea
+                    rows={6}
+                    value={policies.privacy}
+                    onChange={e => setPolicies({ ...policies, privacy: e.target.value })}
+                    placeholder="Enter your Privacy Policy here..."
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-y"
+                  />
+                </CardContent>
+              </Card>
+
+              {/* 3. Shipping & Delivery Policy */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-bold text-slate-900">Shipping & Delivery Policy</CardTitle>
+                  <CardDescription className="text-xs">Outline delivery timeframes, zones in Sultanpur, delivery charges, and dispatch SLA.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <textarea
+                    rows={6}
+                    value={policies.shipping}
+                    onChange={e => setPolicies({ ...policies, shipping: e.target.value })}
+                    placeholder="Enter your Shipping and Delivery Policy here..."
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-y"
+                  />
+                </CardContent>
+              </Card>
+
+              {/* 4. Cancellation & Refund Policy */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-bold text-slate-900">Cancellation & Refund Policy</CardTitle>
+                  <CardDescription className="text-xs">Guidelines for order cancellations, replacement conditions, and refund processing.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <textarea
+                    rows={6}
+                    value={policies.returns}
+                    onChange={e => setPolicies({ ...policies, returns: e.target.value })}
+                    placeholder="Enter your Cancellation and Refund Policy here..."
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-y"
+                  />
+                </CardContent>
+              </Card>
+
+              {/* 5. About Us Page Content */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-bold text-slate-900">About Us Story & Information</CardTitle>
+                  <CardDescription className="text-xs">Company mission, Sultanpur local commerce vision, and community profile.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <textarea
                     rows={5}
-                    placeholder="Enter your Privacy Policy here..."
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none"
+                    value={policies.about}
+                    onChange={e => setPolicies({ ...policies, about: e.target.value })}
+                    placeholder="Enter your About Us description here..."
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-y"
                   />
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base font-bold text-slate-900">Cancellation & Refund Policy</CardTitle>
-                  <CardDescription className="text-xs">Guidelines for order cancellations and user refunds.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <textarea
-                    rows={4}
-                    placeholder="Enter your Cancellation and Refund Policy here..."
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none"
-                  />
-                </CardContent>
-              </Card>
+              <div className="flex justify-end pt-2">
+                <button
+                  onClick={handleSaveAll}
+                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Save All Policies</span>
+                </button>
+              </div>
             </div>
           )}
 

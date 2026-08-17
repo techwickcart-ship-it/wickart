@@ -1599,6 +1599,173 @@ export const marketplaceStore = {
     window.dispatchEvent(new Event('settingsUpdated'));
   },
 
+  getContactInfo(): {
+    supportEmail: string;
+    contactPhone: string;
+    supportWhatsapp: string;
+    workingHours: string;
+    address: string;
+    city: string;
+    state: string;
+    pincode: string;
+  } {
+    const fallback = {
+      supportEmail: 'support@wikcart.in',
+      contactPhone: '+91 9876543210',
+      supportWhatsapp: '+91 9876543210',
+      workingHours: '9:00 AM - 9:00 PM (Mon - Sun)',
+      address: '123, Civil Lines, Near Clock Tower',
+      city: 'Sultanpur',
+      state: 'Uttar Pradesh',
+      pincode: '228001'
+    };
+    return getStored('contactInfo', fallback);
+  },
+  saveContactInfo(info: any): void {
+    setStored('contactInfo', info);
+    window.dispatchEvent(new Event('settingsUpdated'));
+  },
+
+  getMediaAssets(): {
+    logo: string;
+    favicon: string;
+    topCategories: Array<{ id: string; name: string; image: string; link?: string }>;
+    sliders: Array<{ id: string; title: string; subtitle: string; image: string; link: string; active: boolean }>;
+    customSections: Array<{ id: string; title: string; subtitle: string; bannerImage: string; link: string; active: boolean }>;
+    promotionalBanner: { image: string; title: string; subtitle: string; link: string; active: boolean };
+    aboutUs: { image: string; title: string; description: string; highlights: string[] };
+  } {
+    const fallback = {
+      logo: '',
+      favicon: '',
+      topCategories: [
+        { id: '1', name: 'Fresh Fruits & Veggies', image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=300', link: '/?category=Fruits' },
+        { id: '2', name: 'Dairy & Bakery', image: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=300', link: '/?category=Dairy' },
+        { id: '3', name: 'Daily Groceries & Staples', image: 'https://images.unsplash.com/photo-1588964895597-cfccd6e2dbf9?w=300', link: '/?category=Groceries' },
+        { id: '4', name: 'Snacks & Beverages', image: 'https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=300', link: '/?category=Snacks' }
+      ],
+      sliders: [
+        {
+          id: 'slide-1',
+          title: 'Superfast Hyperlocal Delivery',
+          subtitle: 'Get fresh groceries & everyday essentials at your doorstep in 30 minutes',
+          image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=1200&q=80',
+          link: '/',
+          active: true
+        },
+        {
+          id: 'slide-2',
+          title: 'Huge Deals on Local Stores',
+          subtitle: 'Support Sultanpur local vendors and save up to 40% every day',
+          image: 'https://images.unsplash.com/photo-1608686207856-001b95cf60ca?w=1200&q=80',
+          link: '/',
+          active: true
+        },
+        {
+          id: 'slide-3',
+          title: 'Farm Fresh Organic Harvest',
+          subtitle: 'Directly sourced from trusted local farmers around the district',
+          image: 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?w=1200&q=80',
+          link: '/',
+          active: true
+        }
+      ],
+      customSections: [
+        {
+          id: 'sec-1',
+          title: 'Trending Weekend Specials',
+          subtitle: 'Best selling items from top-rated neighborhood outlets',
+          bannerImage: 'https://images.unsplash.com/photo-1506617564039-2f3b650b7010?w=600',
+          link: '/',
+          active: true
+        }
+      ],
+      promotionalBanner: {
+        image: 'https://images.unsplash.com/photo-1534723452862-4c874018d66d?w=1200&q=80',
+        title: 'Flash Sale: Flat ₹100 Off on Orders above ₹499',
+        subtitle: 'Use code WIK100 at checkout. Valid on all grocery and organic products.',
+        link: '/',
+        active: true
+      },
+      aboutUs: {
+        image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=800',
+        title: 'Empowering Local Neighborhood Commerce',
+        description: 'Wikcart is Sultanpur’s premier hyperlocal marketplace connecting local storekeepers, fresh farm producers, and daily essentials vendors directly with nearby families. Fast delivery, trusted quality, transparent pricing.',
+        highlights: ['30-Minute Fast Delivery', '100% Genuine Local Products', 'Direct Seller Support', 'Easy Returns & Instant Refunds']
+      }
+    };
+    return getStored('mediaAssets', fallback);
+  },
+  saveMediaAssets(assets: any): void {
+    setStored('mediaAssets', assets);
+    window.dispatchEvent(new Event('settingsUpdated'));
+  },
+
+  getPaymentGateways(): {
+    cod: { enabled: boolean; minOrder: number; maxOrder: number; fee: number; note: string };
+    upi: { enabled: boolean; upiId: string; merchantName: string; qrCodeUrl: string; instructions: string };
+    razorpay: { enabled: boolean; keyId: string; keySecret: string; webhookSecret: string; testMode: boolean };
+    phonepe: { enabled: boolean; merchantId: string; saltKey: string; saltIndex: string; testMode: boolean };
+    stripe: { enabled: boolean; publishableKey: string; secretKey: string; testMode: boolean };
+    bankTransfer: { enabled: boolean; accountHolder: string; bankName: string; accountNumber: string; ifscCode: string; branch: string };
+    walletPay: { enabled: boolean; maxPercentage: number; allowPartial: boolean };
+  } {
+    const fallback = {
+      cod: {
+        enabled: true,
+        minOrder: 50,
+        maxOrder: 10000,
+        fee: 0,
+        note: 'Pay cash or UPI scan on doorstep delivery'
+      },
+      upi: {
+        enabled: true,
+        upiId: 'wikcart@oksbi',
+        merchantName: 'Wikcart Hyperlocal Services',
+        qrCodeUrl: '',
+        instructions: 'Scan the QR code or send payment to our official UPI ID and enter UTR code.'
+      },
+      razorpay: {
+        enabled: true,
+        keyId: 'rzp_test_1DP5mmOlF5G5ag',
+        keySecret: 'rzp_secret_dummy_key_123456789',
+        webhookSecret: '',
+        testMode: true
+      },
+      phonepe: {
+        enabled: false,
+        merchantId: 'MERCHANTUAT',
+        saltKey: '099eb0cd-02cf-4e2a-8aca-3e6c6aff0399',
+        saltIndex: '1',
+        testMode: true
+      },
+      stripe: {
+        enabled: false,
+        publishableKey: 'pk_test_TYooMQauvdEDq54NiTphI7jx',
+        secretKey: 'sk_test_placeholder_key',
+        testMode: true
+      },
+      bankTransfer: {
+        enabled: false,
+        accountHolder: 'Wikcart Technologies Pvt Ltd',
+        bankName: 'State Bank of India',
+        accountNumber: '39482010049281',
+        ifscCode: 'SBIN0001234',
+        branch: 'Civil Lines, Sultanpur'
+      },
+      walletPay: {
+        enabled: true,
+        maxPercentage: 100,
+        allowPartial: true
+      }
+    };
+    return getStored('paymentGateways', fallback);
+  },
+  savePaymentGateways(gateways: any): void {
+    setStored('paymentGateways', gateways);
+    window.dispatchEvent(new Event('settingsUpdated'));
+  },
+
   // NEW DYNAMIC ENTITIES FOR FULL WIPE CAPABILITY
   getCategories(): any[] {
     return getStored('categories', INITIAL_CATEGORIES);
@@ -1929,6 +2096,149 @@ export const marketplaceStore = {
   },
   saveWithdrawals(list: any[]): void {
     setStored('withdrawals', list);
+  },
+  addWithdrawal(w: { store: string; sellerId?: string; requestedAmt: string; method: string; accountDetails?: string; remarks?: string }): any {
+    const list = this.getWithdrawals();
+    const newId = `#WTH-${Math.floor(1000 + Math.random() * 9000)}`;
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const item = {
+      id: newId,
+      date: dateStr,
+      store: w.store,
+      sellerId: w.sellerId || '',
+      requestedAmt: w.requestedAmt.startsWith('₹') ? w.requestedAmt : `₹${w.requestedAmt}`,
+      method: w.method || 'Bank Transfer',
+      accountDetails: w.accountDetails || 'Primary Bank Account',
+      status: 'Pending',
+      remarks: w.remarks || 'Standard vendor payout request'
+    };
+    list.unshift(item);
+    this.saveWithdrawals(list);
+    return item;
+  },
+
+  // RETURN REQUESTS
+  getReturnRequests(): Array<{
+    id: string;
+    orderId: string;
+    store?: string;
+    sellerId?: string;
+    customer: string;
+    customerPhone?: string;
+    reason: string;
+    date: string;
+    amount: number;
+    items?: string;
+    status: 'Pending Approval' | 'Approved & Refunded' | 'Rejected';
+    adminRemarks?: string;
+  }> {
+    const initial = [
+      { id: 'RET-001', orderId: '#ORD-9821', store: 'City Square Mart', customer: 'Alok Nath', reason: 'Damaged Product on arrival', date: '06 Jun 2026', amount: 350, status: 'Pending Approval' as const },
+      { id: 'RET-002', orderId: '#ORD-9810', store: 'Fresh Veggies Hub', customer: 'Priya Desai', reason: 'Wrong Item Delivered', date: '05 Jun 2026', amount: 220, status: 'Approved & Refunded' as const },
+      { id: 'RET-003', orderId: '#ORD-9750', store: 'Organic Farms', customer: 'Rohan Sharma', reason: 'Quality Issue', date: '01 Jun 2026', amount: 180, status: 'Rejected' as const },
+    ];
+    return getStored('returnRequests', initial);
+  },
+  saveReturnRequests(list: any[]): void {
+    setStored('returnRequests', list);
+  },
+  addReturnRequest(req: any): any {
+    const list = this.getReturnRequests();
+    const newId = `RET-${String(list.length + 1).padStart(3, '0')}`;
+    const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const item = {
+      id: newId,
+      orderId: req.orderId || '#ORD-0000',
+      store: req.store || 'Main Store',
+      customer: req.customer || 'Customer',
+      customerPhone: req.customerPhone || '',
+      reason: req.reason || 'Customer Return Request',
+      date: dateStr,
+      amount: Number(req.amount) || 0,
+      status: 'Pending Approval',
+      items: req.items || ''
+    };
+    list.unshift(item);
+    this.saveReturnRequests(list);
+    return item;
+  },
+
+  // SUPPORT TICKETS
+  getSupportTickets(): Array<{
+    id: string;
+    ticketNo: string;
+    subject: string;
+    category: string;
+    priority: 'Low' | 'Medium' | 'High' | 'Urgent';
+    status: 'Open' | 'In Progress' | 'Resolved' | 'Closed';
+    storeName: string;
+    sellerId: string;
+    createdAt: string;
+    lastUpdated: string;
+    messages: Array<{ sender: 'seller' | 'admin'; message: string; timestamp: string }>;
+  }> {
+    const initial = [
+      {
+        id: 't-1',
+        ticketNo: 'TCK-2026-891',
+        subject: 'Payout Delay Inquiry for Week 24',
+        category: 'Payouts & Settlement',
+        priority: 'High' as const,
+        status: 'Open' as const,
+        storeName: 'City Square Mart',
+        sellerId: '1',
+        createdAt: '05 Jun 2026, 11:30 AM',
+        lastUpdated: '05 Jun 2026, 11:30 AM',
+        messages: [
+          { sender: 'seller' as const, message: 'Hello, our payout for order batch #9820 is still in processing status. Could you please check?', timestamp: '05 Jun 2026, 11:30 AM' }
+        ]
+      },
+      {
+        id: 't-2',
+        ticketNo: 'TCK-2026-842',
+        subject: 'Category Listing Update Request',
+        category: 'Catalog Management',
+        priority: 'Medium' as const,
+        status: 'Resolved' as const,
+        storeName: 'City Square Mart',
+        sellerId: '1',
+        createdAt: '01 Jun 2026, 03:15 PM',
+        lastUpdated: '02 Jun 2026, 10:00 AM',
+        messages: [
+          { sender: 'seller' as const, message: 'We want to add organic cold-pressed oils subcategory.', timestamp: '01 Jun 2026, 03:15 PM' },
+          { sender: 'admin' as const, message: 'Category added! You can now map your products directly under Groceries > Oils.', timestamp: '02 Jun 2026, 10:00 AM' }
+        ]
+      }
+    ];
+    return getStored('supportTickets', initial);
+  },
+  saveSupportTickets(list: any[]): void {
+    setStored('supportTickets', list);
+  },
+  addSupportTicket(ticket: { subject: string; category: string; priority: any; message: string; storeName: string; sellerId: string }): any {
+    const list = this.getSupportTickets();
+    const newId = `t-${Date.now()}`;
+    const ticketNo = `TCK-2026-${Math.floor(100 + Math.random() * 900)}`;
+    const nowStr = new Date().toLocaleString('en-US', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+    const item = {
+      id: newId,
+      ticketNo,
+      subject: ticket.subject,
+      category: ticket.category || 'General Issue',
+      priority: ticket.priority || 'Medium',
+      status: 'Open' as const,
+      storeName: ticket.storeName,
+      sellerId: ticket.sellerId || '',
+      createdAt: nowStr,
+      lastUpdated: nowStr,
+      messages: [
+        { sender: 'seller' as const, message: ticket.message, timestamp: nowStr }
+      ]
+    };
+    list.unshift(item);
+    this.saveSupportTickets(list);
+    return item;
   },
 
   getGlobalInventory(): any[] {
@@ -2403,6 +2713,105 @@ export const marketplaceStore = {
       localStorage.setItem('deliveryZones', JSON.stringify([]));
     }
     this.dispatchAllEvents();
+  },
+
+  // BUSINESS SETTINGS: CONTACT INFO, MEDIA ASSETS & PAYMENT GATEWAYS
+  getContactInfo(): {
+    storeAddress: string;
+    mobileNumber: string;
+    alternateMobileNumber: string;
+    email: string;
+    supportEmail: string;
+    supportNumber: string;
+    helpCenterLink: string;
+    whatsappNumber: string;
+  } {
+    return getStored('contactInfo', {
+      storeAddress: '123, Techwick Business Park, Near Bus Station, Sultanpur, Uttar Pradesh - 228001',
+      mobileNumber: '+91 9876543210',
+      alternateMobileNumber: '+91 9876543211',
+      email: 'techwickcart@gmail.com',
+      supportEmail: 'support@techwick.in',
+      supportNumber: '+91 9876543210',
+      helpCenterLink: 'https://techwick.in/help',
+      whatsappNumber: '+91 9876543210'
+    });
+  },
+  saveContactInfo(info: any): void {
+    setStored('contactInfo', info);
+    window.dispatchEvent(new Event('store_contactInfo_updated'));
+  },
+
+  getMediaAssets(): {
+    logo: string;
+    favicon: string;
+    loginBgImage: string;
+    playStoreBadge: string;
+    appleStoreBadge: string;
+    appImage: string;
+  } {
+    return getStored('mediaAssets', {
+      logo: '',
+      favicon: '',
+      loginBgImage: '',
+      playStoreBadge: '',
+      appleStoreBadge: '',
+      appImage: ''
+    });
+  },
+  saveMediaAssets(assets: any): void {
+    setStored('mediaAssets', assets);
+    window.dispatchEvent(new Event('store_mediaAssets_updated'));
+  },
+
+  getPaymentGateways(): {
+    phonepe: { enabled: boolean; mode: 'test' | 'live'; merchantId: string; saltKey: string; saltIndex: string; callbackUrl?: string };
+    razorpay: { enabled: boolean; mode: 'test' | 'live'; keyId: string; keySecret: string; webhookSecret?: string };
+    cashfree: { enabled: boolean; mode: 'test' | 'live'; appId: string; secretKey: string };
+    paytm: { enabled: boolean; mode: 'test' | 'live'; merchantId: string; merchantKey: string; websiteName?: string };
+    stripe: { enabled: boolean; mode: 'test' | 'live'; publishableKey: string; secretKey: string; webhookSecret?: string };
+  } {
+    return getStored('paymentGateways', {
+      phonepe: {
+        enabled: true,
+        mode: 'test' as const,
+        merchantId: 'PGTESTPAYUAT',
+        saltKey: '099eb0cd-02cf-4e2a-8aca-3e6c6aff0399',
+        saltIndex: '1',
+        callbackUrl: 'https://techwick.in/api/phonepe/callback'
+      },
+      razorpay: {
+        enabled: true,
+        mode: 'test' as const,
+        keyId: 'rzp_test_1DP5mmOlF5G5ag',
+        keySecret: 's8d9fs8d9f7sd8f7s9df',
+        webhookSecret: ''
+      },
+      cashfree: {
+        enabled: false,
+        mode: 'test' as const,
+        appId: 'TEST_CF_APP_12345',
+        secretKey: 'cf_sec_key_test_abcdef'
+      },
+      paytm: {
+        enabled: false,
+        mode: 'test' as const,
+        merchantId: 'DIY1234567890',
+        merchantKey: 'a1b2c3d4e5f6g7h8',
+        websiteName: 'DEFAULT'
+      },
+      stripe: {
+        enabled: false,
+        mode: 'test' as const,
+        publishableKey: 'pk_test_51Mz...',
+        secretKey: 'sk_test_51Mz...',
+        webhookSecret: ''
+      }
+    });
+  },
+  savePaymentGateways(gateways: any): void {
+    setStored('paymentGateways', gateways);
+    window.dispatchEvent(new Event('store_paymentGateways_updated'));
   },
 
   restoreDummyData(): void {

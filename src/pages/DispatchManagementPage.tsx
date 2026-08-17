@@ -89,6 +89,13 @@ export function DispatchManagementPage() {
       return;
     }
 
+    const cleanDigits = formPhone.replace(/\D/g, '');
+    if (cleanDigits.length !== 10) {
+      alert('Please enter a valid 10-digit mobile number (numbers only).');
+      return;
+    }
+
+    const formattedPhone = `+91 ${cleanDigits.slice(0, 5)} ${cleanDigits.slice(5)}`;
     const cleanedAmountNum = parseFloat(formAmount.replace(/[^0-9.]/g, '')) || 0;
     const amountStr = `₹${cleanedAmountNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 
@@ -97,7 +104,7 @@ export function DispatchManagementPage() {
       store: formStore,
       amount: amountStr,
       address: formAddress,
-      phone: formPhone,
+      phone: formattedPhone,
       items: [{ name: formItemName || 'Sultanpur Hyperlocal Delivery', qty: 1, price: amountStr }]
     };
 
@@ -534,15 +541,31 @@ export function DispatchManagementPage() {
 
                   {/* Customer Phone */}
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Phone Number *</label>
-                    <input
-                      type="tel"
-                      required
-                      value={formPhone}
-                      onChange={(e) => setFormPhone(e.target.value)}
-                      placeholder="+91 XXXXX XXXXX"
-                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:border-blue-500 outline-none text-slate-800 font-medium"
-                    />
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Phone Number *</label>
+                      <span className="text-[10px] font-mono text-slate-400">
+                        {formPhone.replace(/\D/g, '').length}/10 digits
+                      </span>
+                    </div>
+                    <div className="relative flex items-center">
+                      <span className="absolute left-3 text-xs font-bold text-slate-500 select-none bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                        +91
+                      </span>
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        pattern="[0-9]{10}"
+                        maxLength={10}
+                        required
+                        value={formPhone}
+                        onChange={(e) => {
+                          const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 10);
+                          setFormPhone(digitsOnly);
+                        }}
+                        placeholder="9876543210"
+                        className="w-full pl-14 pr-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:border-blue-500 outline-none text-slate-800 font-mono tracking-wider"
+                      />
+                    </div>
                   </div>
                 </div>
 

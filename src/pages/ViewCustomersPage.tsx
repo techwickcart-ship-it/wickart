@@ -61,7 +61,19 @@ export function ViewCustomersPage() {
       city: cust.city || 'Sultanpur',
       state: cust.state || 'Uttar Pradesh',
       pincode: cust.pincode || '228001',
-      landmark: cust.landmark || ''
+      landmark: cust.landmark || '',
+      // Custom Discount System Options
+      customDiscount: cust.customDiscount || {
+        enabled: false,
+        discountType: 'percentage', // 'percentage' | 'fixed'
+        discountRate: 10,
+        discountLimit: 200,
+        minOrderValue: 299,
+        totalUsageLimit: 5,
+        perUserLimit: 1,
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      }
     });
   };
 
@@ -334,14 +346,62 @@ export function ViewCustomersPage() {
                 <span className="text-slate-400 block font-medium">Account Status</span>
                 <span className="font-bold text-emerald-600">{selectedCust.status || 'Active'}</span>
               </div>
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                <span className="text-slate-400 block font-medium">Referral Code</span>
-                <span className="font-mono font-bold text-blue-600">{selectedCust.referralCode || 'None'}</span>
+              {/* Custom Discount System Summary (Replacing referral info) */}
+              <div className="bg-gradient-to-br from-indigo-50/70 to-blue-50/70 p-3.5 rounded-2xl border border-indigo-100 col-span-2 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-indigo-900 font-bold flex items-center gap-1.5 text-xs">
+                    <span className="w-2 h-2 rounded-full bg-indigo-600"></span>
+                    Custom Customer Discount System
+                  </span>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    selectedCust.customDiscount?.enabled
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                      : 'bg-slate-200 text-slate-600'
+                  }`}>
+                    {selectedCust.customDiscount?.enabled ? 'DISCOUNT ACTIVE' : 'NO CUSTOM DISCOUNT'}
+                  </span>
+                </div>
+
+                {selectedCust.customDiscount?.enabled ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
+                    <div className="bg-white/80 p-2 rounded-lg border border-indigo-100">
+                      <span className="text-slate-400 block text-[10px]">Discount Rate</span>
+                      <span className="font-bold text-indigo-700 text-xs">
+                        {selectedCust.customDiscount.discountType === 'percentage'
+                          ? `${selectedCust.customDiscount.discountRate}% OFF`
+                          : `₹${selectedCust.customDiscount.discountRate} FLAT`}
+                      </span>
+                    </div>
+                    <div className="bg-white/80 p-2 rounded-lg border border-indigo-100">
+                      <span className="text-slate-400 block text-[10px]">Min Order Value</span>
+                      <span className="font-bold text-slate-800 text-xs">₹{selectedCust.customDiscount.minOrderValue || 0}</span>
+                    </div>
+                    <div className="bg-white/80 p-2 rounded-lg border border-indigo-100">
+                      <span className="text-slate-400 block text-[10px]">Discount Limit</span>
+                      <span className="font-bold text-slate-800 text-xs">Max ₹{selectedCust.customDiscount.discountLimit || 'No Cap'}</span>
+                    </div>
+                    <div className="bg-white/80 p-2 rounded-lg border border-indigo-100">
+                      <span className="text-slate-400 block text-[10px]">Total Limit</span>
+                      <span className="font-bold text-slate-800 text-xs">{selectedCust.customDiscount.totalUsageLimit || 'Unlimited'} uses</span>
+                    </div>
+                    <div className="bg-white/80 p-2 rounded-lg border border-indigo-100">
+                      <span className="text-slate-400 block text-[10px]">Per User Limit</span>
+                      <span className="font-bold text-slate-800 text-xs">{selectedCust.customDiscount.perUserLimit || 1} time(s)</span>
+                    </div>
+                    <div className="bg-white/80 p-2 rounded-lg border border-indigo-100">
+                      <span className="text-slate-400 block text-[10px]">Validity Dates</span>
+                      <span className="font-semibold text-slate-700 text-[10px] truncate block">
+                        {selectedCust.customDiscount.startDate || 'Now'} to {selectedCust.customDiscount.endDate || 'Ongoing'}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-slate-500 italic">
+                    Click "Edit Profile" below to configure customized discount rates, minimum order value, and usage limits for this customer.
+                  </p>
+                )}
               </div>
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                <span className="text-slate-400 block font-medium">Referred By</span>
-                <span className="font-mono font-bold text-slate-700">{selectedCust.referredByCode || 'None'}</span>
-              </div>
+
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 col-span-2">
                 <span className="text-slate-400 block font-medium">Delivery Address</span>
                 <span className="font-semibold text-slate-800 block mt-0.5">
@@ -359,7 +419,7 @@ export function ViewCustomersPage() {
                 }}
                 className="px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer"
               >
-                <Edit2 className="w-3.5 h-3.5" /> Edit Profile
+                <Edit2 className="w-3.5 h-3.5" /> Edit Profile & Custom Discount
               </button>
               <button 
                 onClick={() => setSelectedCust(null)} 
@@ -491,6 +551,176 @@ export function ViewCustomersPage() {
                     className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-indigo-500 outline-none"
                   />
                 </div>
+              </div>
+
+              {/* Custom Discount System Controls */}
+              <div className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-xs font-bold text-indigo-900 uppercase tracking-wider">Custom Customer Discount System</h4>
+                    <p className="text-[11px] text-slate-500">Enable and configure exclusive discount rates for this customer.</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={editingCust.customDiscount?.enabled || false}
+                      onChange={(e) => setEditingCust({
+                        ...editingCust,
+                        customDiscount: {
+                          ...(editingCust.customDiscount || {}),
+                          enabled: e.target.checked
+                        }
+                      })}
+                      className="sr-only peer"
+                    />
+                    <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+
+                {editingCust.customDiscount?.enabled && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-indigo-100/70 animate-in fade-in">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">Discount Rate Type</label>
+                      <select
+                        value={editingCust.customDiscount?.discountType || 'percentage'}
+                        onChange={(e) => setEditingCust({
+                          ...editingCust,
+                          customDiscount: {
+                            ...editingCust.customDiscount,
+                            discountType: e.target.value
+                          }
+                        })}
+                        className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none"
+                      >
+                        <option value="percentage">Percentage (%) Discount</option>
+                        <option value="fixed">Fixed Amount (₹) Discount</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                        Discount Rate ({editingCust.customDiscount?.discountType === 'percentage' ? '%' : '₹'}) *
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={editingCust.customDiscount?.discountRate ?? 10}
+                        onChange={(e) => setEditingCust({
+                          ...editingCust,
+                          customDiscount: {
+                            ...editingCust.customDiscount,
+                            discountRate: Number(e.target.value)
+                          }
+                        })}
+                        className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">Minimum Order Value (₹)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={editingCust.customDiscount?.minOrderValue ?? 0}
+                        onChange={(e) => setEditingCust({
+                          ...editingCust,
+                          customDiscount: {
+                            ...editingCust.customDiscount,
+                            minOrderValue: Number(e.target.value)
+                          }
+                        })}
+                        placeholder="e.g. 299"
+                        className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">Discount Limit / Max Cap (₹)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={editingCust.customDiscount?.discountLimit ?? 200}
+                        onChange={(e) => setEditingCust({
+                          ...editingCust,
+                          customDiscount: {
+                            ...editingCust.customDiscount,
+                            discountLimit: Number(e.target.value)
+                          }
+                        })}
+                        placeholder="e.g. 200"
+                        className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">Total Usage Limit</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={editingCust.customDiscount?.totalUsageLimit ?? 5}
+                        onChange={(e) => setEditingCust({
+                          ...editingCust,
+                          customDiscount: {
+                            ...editingCust.customDiscount,
+                            totalUsageLimit: Number(e.target.value)
+                          }
+                        })}
+                        placeholder="e.g. 5"
+                        className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">Per User Limit</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={editingCust.customDiscount?.perUserLimit ?? 1}
+                        onChange={(e) => setEditingCust({
+                          ...editingCust,
+                          customDiscount: {
+                            ...editingCust.customDiscount,
+                            perUserLimit: Number(e.target.value)
+                          }
+                        })}
+                        placeholder="e.g. 1"
+                        className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">Start Date</label>
+                      <input
+                        type="date"
+                        value={editingCust.customDiscount?.startDate || ''}
+                        onChange={(e) => setEditingCust({
+                          ...editingCust,
+                          customDiscount: {
+                            ...editingCust.customDiscount,
+                            startDate: e.target.value
+                          }
+                        })}
+                        className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">End Date</label>
+                      <input
+                        type="date"
+                        value={editingCust.customDiscount?.endDate || ''}
+                        onChange={(e) => setEditingCust({
+                          ...editingCust,
+                          customDiscount: {
+                            ...editingCust.customDiscount,
+                            endDate: e.target.value
+                          }
+                        })}
+                        className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">

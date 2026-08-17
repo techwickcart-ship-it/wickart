@@ -9,6 +9,10 @@ import { SellerProductsPage } from './SellerProductsPage';
 import { SellerOrdersPage } from './SellerOrdersPage';
 import { SellerInventoryPage } from './SellerInventoryPage';
 import { SellerKYCPage } from './SellerKYCPage';
+import { SellerReturnsPage } from './SellerReturnsPage';
+import { SellerEarningsPage } from './SellerEarningsPage';
+import { SellerWithdrawalsPage } from './SellerWithdrawalsPage';
+import { SellerSupportPage } from './SellerSupportPage';
 import { marketplaceStore, useMarketplaceData } from '../../lib/store';
 import { useActiveSellerStore } from '../../lib/useActiveSellerStore';
 import { navigateTo } from '../../lib/navigation';
@@ -254,6 +258,14 @@ export function SellerPanel() {
                 <SellerInventoryPage />
              ) : activePage === 'KYC & Verification' ? (
                 <SellerKYCPage />
+             ) : activePage === 'Returns & Refunds' ? (
+                <SellerReturnsPage />
+             ) : activePage === 'Earnings & Commission' ? (
+                <SellerEarningsPage />
+             ) : activePage === 'Withdrawals' ? (
+                <SellerWithdrawalsPage />
+             ) : activePage === 'Raise Ticket' ? (
+                <SellerSupportPage />
              ) : (
                 <PagePlaceholder pageName={activePage} />
              )}

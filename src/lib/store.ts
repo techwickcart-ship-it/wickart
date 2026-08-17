@@ -148,24 +148,9 @@ export interface Warehouse {
   status: 'Active' | 'Inactive' | 'Maintenance';
 }
 
-// Initial Categories & Brands for Marketplace taxonomy
-const INITIAL_CATEGORIES: any[] = [
-  { id: 'cat-1', name: 'Groceries & Daily Essentials', image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=300&auto=format&fit=crop&q=60', status: 'Active', count: 0 },
-  { id: 'cat-2', name: 'Electronics & Mobiles', image: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=300&auto=format&fit=crop&q=60', status: 'Active', count: 0 },
-  { id: 'cat-3', name: 'Fashion & Clothing', image: 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=300&auto=format&fit=crop&q=60', status: 'Active', count: 0 },
-  { id: 'cat-4', name: 'Home & Kitchen', image: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=300&auto=format&fit=crop&q=60', status: 'Active', count: 0 },
-  { id: 'cat-5', name: 'Beauty & Personal Care', image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=300&auto=format&fit=crop&q=60', status: 'Active', count: 0 },
-  { id: 'cat-6', name: 'Fresh Fruits & Vegetables', image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=300&auto=format&fit=crop&q=60', status: 'Active', count: 0 }
-];
-
-const INITIAL_BRANDS: Brand[] = [
-  { id: 'brand-1', name: 'Amul', status: 'active', count: 0 },
-  { id: 'brand-2', name: 'Tata', status: 'active', count: 0 },
-  { id: 'brand-3', name: 'Fortune', status: 'active', count: 0 },
-  { id: 'brand-4', name: 'Samsung', status: 'active', count: 0 },
-  { id: 'brand-5', name: 'Boat', status: 'active', count: 0 },
-  { id: 'brand-6', name: 'Nestle', status: 'active', count: 0 }
-];
+// Initial Categories & Brands for Marketplace taxonomy - Clean empty state to prevent phantom mock overrides across devices
+const INITIAL_CATEGORIES: any[] = [];
+const INITIAL_BRANDS: Brand[] = [];
 
 const INITIAL_PRODUCTS: Product[] = [];
 const INITIAL_ORDERS: Order[] = [];
@@ -241,15 +226,26 @@ export function isAuthOrApiKeyError(error: any): boolean {
   );
 }
 
+// Cross-tab and cross-window sync channel for instant local reactivity
+const marketplaceSyncChannel = typeof window !== 'undefined' && 'BroadcastChannel' in window
+  ? new BroadcastChannel('wikcart_marketplace_sync')
+  : null;
+
+if (marketplaceSyncChannel) {
+  marketplaceSyncChannel.onmessage = (event) => {
+    const { key } = event.data || {};
+    if (key) {
+      window.dispatchEvent(new Event(`store_${key}_updated`));
+      window.dispatchEvent(new Event('settingsUpdated'));
+    }
+  };
+}
+
 function getStored<T>(key: string, fallback: T): T {
   try {
     const val = localStorage.getItem(key);
     if (val !== null && val !== '') {
       const parsed = JSON.parse(val);
-      // If parsed is empty array but fallback has items (like categories/brands), fallback
-      if (Array.isArray(parsed) && parsed.length === 0 && Array.isArray(fallback) && fallback.length > 0) {
-        return fallback;
-      }
       return parsed;
     }
     if (key === 'companyName') return 'Wikcart' as any as T;
@@ -265,6 +261,9 @@ function setStored<T>(key: string, value: T): void {
     localStorage.setItem(key, JSON.stringify(value));
     // Dispatch system-wide event for cross-component re-renders
     window.dispatchEvent(new Event(`store_${key}_updated`));
+    if (marketplaceSyncChannel) {
+      marketplaceSyncChannel.postMessage({ key });
+    }
   } catch (e) {
     console.error(e);
   }
@@ -1118,31 +1117,57 @@ export const marketplaceStore = {
     }
   },
 
-  async syncBrandsFromSupabase(): Promise<void> {
+  async syncBrandsFromSupabase(): Promise<Brand[]> {
     try {
       const { data, error } = await supabase.from('brands').select('*');
       if (error) {
         if (!isAuthOrApiKeyError(error)) console.warn('Supabase fetch brands error:', error.message);
-        return;
+        return this.getBrands();
       }
-      if (data && data.length > 0) {
+      if (data && Array.isArray(data)) {
         const mapped: Brand[] = data.map((b: any) => ({
-          id: b.id,
-          name: b.name,
-          logo: b.logo_url || '',
-          status: b.status === 'Active' ? 'active' : 'inactive'
+          id: String(b.id),
+          name: b.name || '',
+          logo: b.logo_url || b.logo || '',
+          status: (b.status === 'Active' || b.status === 'active') ? 'active' : 'inactive',
+          count: Number(b.count) || 0
         }));
-        setStored('brands', mapped);
+
+        // Merge remote brands with local brands to guarantee no data loss
+        const localList = getStored<Brand[]>('brands', []);
+        const brandMap = new Map<string, Brand>();
+
+        // Remote brands take priority
+        for (const item of mapped) {
+          const key = (item.name || '').trim().toLowerCase();
+          if (key) brandMap.set(key, item);
+        }
+
+        // Local brands that are not yet on Supabase get preserved & synced
+        for (const item of localList) {
+          const key = (item.name || '').trim().toLowerCase();
+          if (key && !brandMap.has(key)) {
+            brandMap.set(key, item);
+            this.saveBrandToSupabase(item).catch(() => {});
+          }
+        }
+
+        const merged = Array.from(brandMap.values());
+        setStored('brands', merged);
+        window.dispatchEvent(new Event('store_brands_updated'));
+        return merged;
       }
     } catch (err) {
       if (!isAuthOrApiKeyError(err)) console.error('Failed to sync brands from Supabase:', err);
     }
+    return this.getBrands();
   },
 
-  async saveBrandToSupabase(brand: Brand): Promise<void> {
+  async saveBrandToSupabase(brand: Brand): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
+      if (!brand.name || !brand.name.trim()) return { success: false, error: 'Brand name required' };
       const payload: any = {
-        name: brand.name,
+        name: brand.name.trim(),
         logo_url: brand.logo || null,
         status: brand.status === 'active' ? 'Active' : 'Inactive'
       };
@@ -1150,32 +1175,60 @@ export const marketplaceStore = {
       if (isUUID) {
         payload.id = brand.id;
       }
-      const onConflictTarget = isUUID ? 'id' : 'name';
-      const { data, error } = await supabase.from('brands').upsert(payload, { onConflict: onConflictTarget }).select();
-      if (error) {
-        if (!isAuthOrApiKeyError(error)) console.error('Supabase save brand error:', error.message);
-      } else if (data && data[0]) {
-        const realId = data[0].id;
-        const currentList = this.getBrands();
-        const updated = currentList.map(b => 
-          (String(b.id) === String(brand.id) || b.name.toLowerCase() === brand.name.toLowerCase()) 
-            ? { ...b, id: realId } 
-            : b
-        );
-        this.saveBrands(updated);
-        this.dispatchAllEvents();
+
+      // Check if brand exists in Supabase by ID or name
+      let existingRecord: any = null;
+      if (isUUID) {
+        const { data } = await supabase.from('brands').select('id').eq('id', brand.id).maybeSingle();
+        if (data) existingRecord = data;
       }
-    } catch (err) {
+      if (!existingRecord) {
+        const { data } = await supabase.from('brands').select('id').ilike('name', brand.name.trim()).maybeSingle();
+        if (data) existingRecord = data;
+      }
+
+      if (existingRecord?.id) {
+        const { data, error } = await supabase.from('brands').update(payload).eq('id', existingRecord.id).select();
+        if (error) {
+          if (!isAuthOrApiKeyError(error)) console.warn('Supabase update brand error:', error.message);
+          return { success: false, error: error.message };
+        }
+        return { success: true, data: data?.[0] };
+      } else {
+        const { data, error } = await supabase.from('brands').insert([payload]).select();
+        if (error) {
+          if (!isAuthOrApiKeyError(error)) console.warn('Supabase insert brand error:', error.message);
+          return { success: false, error: error.message };
+        } else if (data && data[0]) {
+          const realId = String(data[0].id);
+          const currentList = this.getBrands();
+          const updated = currentList.map(b => 
+            (String(b.id) === String(brand.id) || b.name.toLowerCase() === brand.name.toLowerCase()) 
+              ? { ...b, id: realId } 
+              : b
+          );
+          setStored('brands', updated);
+          window.dispatchEvent(new Event('store_brands_updated'));
+          return { success: true, data: data[0] };
+        }
+        return { success: true };
+      }
+    } catch (err: any) {
       if (!isAuthOrApiKeyError(err)) console.error('Failed to save brand to Supabase:', err);
+      return { success: false, error: err?.message || String(err) };
     }
   },
 
-  async deleteBrandFromSupabase(id: string): Promise<void> {
+  async deleteBrandFromSupabase(id: string, name?: string): Promise<void> {
     try {
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
-      if (!isUUID) return;
-      const { error } = await supabase.from('brands').delete().eq('id', id);
-      if (error && !isAuthOrApiKeyError(error)) console.error('Supabase delete brand error:', error.message);
+      const isUUID = typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+      if (isUUID) {
+        const { error } = await supabase.from('brands').delete().eq('id', id);
+        if (error && !isAuthOrApiKeyError(error)) console.error('Supabase delete brand error by ID:', error.message);
+      } else if (name) {
+        const { error } = await supabase.from('brands').delete().ilike('name', name.trim());
+        if (error && !isAuthOrApiKeyError(error)) console.error('Supabase delete brand error by Name:', error.message);
+      }
     } catch (err) {
       if (!isAuthOrApiKeyError(err)) console.error('Failed to delete brand from Supabase:', err);
     }
@@ -1596,173 +1649,6 @@ export const marketplaceStore = {
   },
   saveCompanyName(name: string): void {
     localStorage.setItem('companyName', name);
-    window.dispatchEvent(new Event('settingsUpdated'));
-  },
-
-  getContactInfo(): {
-    supportEmail: string;
-    contactPhone: string;
-    supportWhatsapp: string;
-    workingHours: string;
-    address: string;
-    city: string;
-    state: string;
-    pincode: string;
-  } {
-    const fallback = {
-      supportEmail: 'support@wikcart.in',
-      contactPhone: '+91 9876543210',
-      supportWhatsapp: '+91 9876543210',
-      workingHours: '9:00 AM - 9:00 PM (Mon - Sun)',
-      address: '123, Civil Lines, Near Clock Tower',
-      city: 'Sultanpur',
-      state: 'Uttar Pradesh',
-      pincode: '228001'
-    };
-    return getStored('contactInfo', fallback);
-  },
-  saveContactInfo(info: any): void {
-    setStored('contactInfo', info);
-    window.dispatchEvent(new Event('settingsUpdated'));
-  },
-
-  getMediaAssets(): {
-    logo: string;
-    favicon: string;
-    topCategories: Array<{ id: string; name: string; image: string; link?: string }>;
-    sliders: Array<{ id: string; title: string; subtitle: string; image: string; link: string; active: boolean }>;
-    customSections: Array<{ id: string; title: string; subtitle: string; bannerImage: string; link: string; active: boolean }>;
-    promotionalBanner: { image: string; title: string; subtitle: string; link: string; active: boolean };
-    aboutUs: { image: string; title: string; description: string; highlights: string[] };
-  } {
-    const fallback = {
-      logo: '',
-      favicon: '',
-      topCategories: [
-        { id: '1', name: 'Fresh Fruits & Veggies', image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=300', link: '/?category=Fruits' },
-        { id: '2', name: 'Dairy & Bakery', image: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=300', link: '/?category=Dairy' },
-        { id: '3', name: 'Daily Groceries & Staples', image: 'https://images.unsplash.com/photo-1588964895597-cfccd6e2dbf9?w=300', link: '/?category=Groceries' },
-        { id: '4', name: 'Snacks & Beverages', image: 'https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=300', link: '/?category=Snacks' }
-      ],
-      sliders: [
-        {
-          id: 'slide-1',
-          title: 'Superfast Hyperlocal Delivery',
-          subtitle: 'Get fresh groceries & everyday essentials at your doorstep in 30 minutes',
-          image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=1200&q=80',
-          link: '/',
-          active: true
-        },
-        {
-          id: 'slide-2',
-          title: 'Huge Deals on Local Stores',
-          subtitle: 'Support Sultanpur local vendors and save up to 40% every day',
-          image: 'https://images.unsplash.com/photo-1608686207856-001b95cf60ca?w=1200&q=80',
-          link: '/',
-          active: true
-        },
-        {
-          id: 'slide-3',
-          title: 'Farm Fresh Organic Harvest',
-          subtitle: 'Directly sourced from trusted local farmers around the district',
-          image: 'https://images.unsplash.com/photo-1573246123716-6b1782bfc499?w=1200&q=80',
-          link: '/',
-          active: true
-        }
-      ],
-      customSections: [
-        {
-          id: 'sec-1',
-          title: 'Trending Weekend Specials',
-          subtitle: 'Best selling items from top-rated neighborhood outlets',
-          bannerImage: 'https://images.unsplash.com/photo-1506617564039-2f3b650b7010?w=600',
-          link: '/',
-          active: true
-        }
-      ],
-      promotionalBanner: {
-        image: 'https://images.unsplash.com/photo-1534723452862-4c874018d66d?w=1200&q=80',
-        title: 'Flash Sale: Flat ₹100 Off on Orders above ₹499',
-        subtitle: 'Use code WIK100 at checkout. Valid on all grocery and organic products.',
-        link: '/',
-        active: true
-      },
-      aboutUs: {
-        image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=800',
-        title: 'Empowering Local Neighborhood Commerce',
-        description: 'Wikcart is Sultanpur’s premier hyperlocal marketplace connecting local storekeepers, fresh farm producers, and daily essentials vendors directly with nearby families. Fast delivery, trusted quality, transparent pricing.',
-        highlights: ['30-Minute Fast Delivery', '100% Genuine Local Products', 'Direct Seller Support', 'Easy Returns & Instant Refunds']
-      }
-    };
-    return getStored('mediaAssets', fallback);
-  },
-  saveMediaAssets(assets: any): void {
-    setStored('mediaAssets', assets);
-    window.dispatchEvent(new Event('settingsUpdated'));
-  },
-
-  getPaymentGateways(): {
-    cod: { enabled: boolean; minOrder: number; maxOrder: number; fee: number; note: string };
-    upi: { enabled: boolean; upiId: string; merchantName: string; qrCodeUrl: string; instructions: string };
-    razorpay: { enabled: boolean; keyId: string; keySecret: string; webhookSecret: string; testMode: boolean };
-    phonepe: { enabled: boolean; merchantId: string; saltKey: string; saltIndex: string; testMode: boolean };
-    stripe: { enabled: boolean; publishableKey: string; secretKey: string; testMode: boolean };
-    bankTransfer: { enabled: boolean; accountHolder: string; bankName: string; accountNumber: string; ifscCode: string; branch: string };
-    walletPay: { enabled: boolean; maxPercentage: number; allowPartial: boolean };
-  } {
-    const fallback = {
-      cod: {
-        enabled: true,
-        minOrder: 50,
-        maxOrder: 10000,
-        fee: 0,
-        note: 'Pay cash or UPI scan on doorstep delivery'
-      },
-      upi: {
-        enabled: true,
-        upiId: 'wikcart@oksbi',
-        merchantName: 'Wikcart Hyperlocal Services',
-        qrCodeUrl: '',
-        instructions: 'Scan the QR code or send payment to our official UPI ID and enter UTR code.'
-      },
-      razorpay: {
-        enabled: true,
-        keyId: 'rzp_test_1DP5mmOlF5G5ag',
-        keySecret: 'rzp_secret_dummy_key_123456789',
-        webhookSecret: '',
-        testMode: true
-      },
-      phonepe: {
-        enabled: false,
-        merchantId: 'MERCHANTUAT',
-        saltKey: '099eb0cd-02cf-4e2a-8aca-3e6c6aff0399',
-        saltIndex: '1',
-        testMode: true
-      },
-      stripe: {
-        enabled: false,
-        publishableKey: 'pk_test_TYooMQauvdEDq54NiTphI7jx',
-        secretKey: 'sk_test_placeholder_key',
-        testMode: true
-      },
-      bankTransfer: {
-        enabled: false,
-        accountHolder: 'Wikcart Technologies Pvt Ltd',
-        bankName: 'State Bank of India',
-        accountNumber: '39482010049281',
-        ifscCode: 'SBIN0001234',
-        branch: 'Civil Lines, Sultanpur'
-      },
-      walletPay: {
-        enabled: true,
-        maxPercentage: 100,
-        allowPartial: true
-      }
-    };
-    return getStored('paymentGateways', fallback);
-  },
-  savePaymentGateways(gateways: any): void {
-    setStored('paymentGateways', gateways);
     window.dispatchEvent(new Event('settingsUpdated'));
   },
 
@@ -2525,9 +2411,10 @@ export const marketplaceStore = {
   },
   deleteBrand(id: string): void {
     const list = this.getBrands();
+    const targetBrand = list.find(b => String(b.id) === String(id));
     const filtered = list.filter(b => String(b.id) !== String(id));
     this.saveBrands(filtered);
-    this.deleteBrandFromSupabase(id).catch(err => {
+    this.deleteBrandFromSupabase(id, targetBrand?.name).catch(err => {
       if (!isAuthOrApiKeyError(err)) console.warn('Brand bg delete error:', err);
     });
   },
@@ -2854,6 +2741,20 @@ if (typeof window !== 'undefined') {
       localStorage.setItem(k, JSON.stringify([]));
     });
     localStorage.setItem('initialCleanSlateApplied_v4', 'true');
+  }
+
+  // Real-time Supabase subscription for cross-device updates
+  try {
+    if (supabase && typeof supabase.channel === 'function') {
+      supabase
+        .channel('wikcart-realtime-brands')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'brands' }, () => {
+          marketplaceStore.syncBrandsFromSupabase().catch(() => {});
+        })
+        .subscribe();
+    }
+  } catch (e) {
+    // Safe fallback if realtime is unavailable
   }
 }
 

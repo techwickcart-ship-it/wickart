@@ -1,13 +1,13 @@
 import React from 'react';
-import { marketplaceStore } from '../../lib/store';
+import { marketplaceStore, useMarketplaceData } from '../../lib/store';
 
 interface PolicyPageProps {
   title: string;
 }
 
 export function PolicyPage({ title }: PolicyPageProps) {
-  const policies = marketplaceStore.getPolicies();
-  const companyName = marketplaceStore.getCompanyName();
+  const policies = useMarketplaceData('policies', () => marketplaceStore.getPolicies());
+  const companyName = useMarketplaceData('companyName', () => marketplaceStore.getCompanyName());
 
   // Determine policy text based on title
   let content = '';

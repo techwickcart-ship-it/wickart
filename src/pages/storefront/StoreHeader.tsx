@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ShoppingCart, MapPin, Search, User, Menu, LogOut, Heart, Repeat, ArrowLeft, X, Tag, Package, Wallet, ExternalLink, ShieldCheck, FileText, Building2, UserPlus, ChevronDown } from 'lucide-react';
 import { navigateTo } from '../../lib/navigation';
-import { marketplaceStore } from '../../lib/store';
+import { marketplaceStore, useMarketplaceData } from '../../lib/store';
 
 interface StoreHeaderProps {
   activePage: string;
@@ -126,9 +126,9 @@ export function StoreHeader({
   };
 
   // Data for live suggestions dropdown
-  const allProducts = marketplaceStore.getProducts();
-  const allCategories = marketplaceStore.getCategories();
-  const allBrands = marketplaceStore.getBrands();
+  const allProducts = useMarketplaceData('products', () => marketplaceStore.getProducts());
+  const allCategories = useMarketplaceData('categories', () => marketplaceStore.getCategories());
+  const allBrands = useMarketplaceData('brands', () => marketplaceStore.getBrands());
 
   const trimmedQuery = searchQuery.trim().toLowerCase();
   const matchedProducts = trimmedQuery ? allProducts.filter(p => 

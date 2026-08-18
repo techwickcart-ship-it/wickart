@@ -1,10 +1,10 @@
 import React from 'react';
-import { marketplaceStore } from '../../lib/store';
+import { marketplaceStore, useMarketplaceData } from '../../lib/store';
 
 export function AboutUsPage() {
-  const policies = marketplaceStore.getPolicies();
-  const companyName = marketplaceStore.getCompanyName();
-  const contactInfo = marketplaceStore.getContactInfo();
+  const policies = useMarketplaceData('policies', () => marketplaceStore.getPolicies());
+  const companyName = useMarketplaceData('companyName', () => marketplaceStore.getCompanyName());
+  const contactInfo = useMarketplaceData('contactInfo', () => marketplaceStore.getContactInfo());
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 animate-in fade-in duration-500 text-center">

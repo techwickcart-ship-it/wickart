@@ -877,7 +877,7 @@ export const marketplaceStore = {
         return;
       }
 
-      if (data && data.length > 0) {
+      if (data && Array.isArray(data)) {
         const sellers = this.getSellers();
         const sellersById = new Map<string, Seller>();
         const sellersByStore = new Map<string, Seller>();
@@ -900,6 +900,9 @@ export const marketplaceStore = {
           const resolvedVendor = row.custom_category || matchedSeller?.storeName || (row.vendor_id ? matchedSeller?.storeName : null) || 'Sultanpur Local Vendor';
           const resolvedSellerId = row.vendor_id || matchedSeller?.id || '1';
 
+          const rawTags = Array.isArray(row.tags) ? row.tags : [];
+          const resolvedBrand = row.brand || rawTags[1] || (rawTags.length > 0 && rawTags[0] !== resolvedVendor ? rawTags[0] : 'Generic');
+
           return {
             id: row.id,
             name: row.name || 'Unnamed Product',
@@ -914,7 +917,7 @@ export const marketplaceStore = {
             tag: row.combo_tag || row.status || 'Published',
             vendor: resolvedVendor,
             sellerId: resolvedSellerId,
-            brand: row.brand || (Array.isArray(row.tags) && row.tags[1]) || 'Generic',
+            brand: resolvedBrand,
             shortDescription: row.short_description || '',
             description: row.detailed_description || row.short_description || '',
             category: row.main_store_category || 'General',
@@ -927,36 +930,19 @@ export const marketplaceStore = {
           };
         });
 
+        // Keep any pending non-UUID products added locally while syncing all cloud products
         const currentLocal = getStored<Product[]>('products', []);
-        const byKey = new Map<string, Product>();
-
-        for (const item of currentLocal) {
-          byKey.set(String(item.id), item);
-        }
-
-        for (const remoteItem of mapped) {
-          const localItem = byKey.get(String(remoteItem.id));
-          if (localItem) {
-            // Keep local vendor & sellerId if remote was empty or generic
-            const isLocalSpecificVendor = localItem.vendor && localItem.vendor !== 'Sultanpur Local Vendor' && localItem.vendor !== 'General';
-            const mergedProd: Product = {
-              ...remoteItem,
-              ...localItem,
-              vendor: isLocalSpecificVendor ? localItem.vendor : (remoteItem.vendor || localItem.vendor),
-              sellerId: localItem.sellerId && localItem.sellerId !== '1' ? localItem.sellerId : (remoteItem.sellerId || localItem.sellerId),
-              price: remoteItem.price || localItem.price,
-              mrp: remoteItem.mrp || localItem.mrp,
-              name: remoteItem.name || localItem.name,
-              category: remoteItem.category || localItem.category
-            };
-            byKey.set(String(remoteItem.id), mergedProd);
-          } else {
-            byKey.set(String(remoteItem.id), remoteItem);
+        const pendingLocal = currentLocal.filter(p => typeof p.id === 'number' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(p.id)));
+        
+        const combined = [...mapped];
+        for (const p of pendingLocal) {
+          if (!combined.some(c => c.name.toLowerCase() === p.name.toLowerCase())) {
+            combined.push(p);
           }
         }
 
-        const merged = Array.from(byKey.values());
-        setStored('products', merged);
+        setStored('products', combined);
+        window.dispatchEvent(new Event('store_products_updated'));
         this.dispatchAllEvents();
       }
     } catch (err) {
@@ -1069,6 +1055,30 @@ export const marketplaceStore = {
           count: 0
         }));
         setStored('categories', mapped);
+        window.dispatchEvent(new Event('store_categories_updated'));
+      } else {
+        // Seed default categories if Supabase categories table is empty
+        const defaultCats = [
+          { name: 'Electronics', image_url: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&q=80&w=300', status: 'Active' },
+          { name: 'Fashion', image_url: 'https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&q=80&w=300', status: 'Active' },
+          { name: 'Grocery', image_url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=300', status: 'Active' },
+          { name: 'Home & Kitchen', image_url: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&q=80&w=300', status: 'Active' },
+          { name: 'Sports & Fitness', image_url: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&q=80&w=300', status: 'Active' },
+          { name: 'Beauty & Personal Care', image_url: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=300', status: 'Active' },
+          { name: 'Daily Essentials', image_url: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=300', status: 'Active' }
+        ];
+        const { data: inserted } = await supabase.from('categories').insert(defaultCats).select();
+        if (inserted && inserted.length > 0) {
+          const mapped = inserted.map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            image: c.image_url || '',
+            status: c.status || 'Active',
+            count: 0
+          }));
+          setStored('categories', mapped);
+          window.dispatchEvent(new Event('store_categories_updated'));
+        }
       }
     } catch (err) {
       if (!isAuthOrApiKeyError(err)) console.error('Failed to sync categories from Supabase:', err);
@@ -1125,37 +1135,23 @@ export const marketplaceStore = {
         return this.getBrands();
       }
       if (data && Array.isArray(data)) {
-        const mapped: Brand[] = data.map((b: any) => ({
-          id: String(b.id),
-          name: b.name || '',
-          logo: b.logo_url || b.logo || '',
-          status: (b.status === 'Active' || b.status === 'active') ? 'active' : 'inactive',
-          count: Number(b.count) || 0
-        }));
+        const brandLogos = getStored<Record<string, string>>('brandLogos', {});
+        const mapped: Brand[] = data.map((b: any) => {
+          const brandName = (b.name || '').trim();
+          const logo = brandLogos[brandName.toLowerCase()] || b.logo_url || b.logo || '';
+          return {
+            id: String(b.id),
+            name: brandName,
+            logo: logo,
+            status: (b.status === 'Active' || b.status === 'active') ? 'active' : 'inactive',
+            count: Number(b.count) || 0
+          };
+        });
 
-        // Merge remote brands with local brands to guarantee no data loss
-        const localList = getStored<Brand[]>('brands', []);
-        const brandMap = new Map<string, Brand>();
-
-        // Remote brands take priority
-        for (const item of mapped) {
-          const key = (item.name || '').trim().toLowerCase();
-          if (key) brandMap.set(key, item);
-        }
-
-        // Local brands that are not yet on Supabase get preserved & synced
-        for (const item of localList) {
-          const key = (item.name || '').trim().toLowerCase();
-          if (key && !brandMap.has(key)) {
-            brandMap.set(key, item);
-            this.saveBrandToSupabase(item).catch(() => {});
-          }
-        }
-
-        const merged = Array.from(brandMap.values());
-        setStored('brands', merged);
+        // Remote brands from Supabase are the single source of truth
+        setStored('brands', mapped);
         window.dispatchEvent(new Event('store_brands_updated'));
-        return merged;
+        return mapped;
       }
     } catch (err) {
       if (!isAuthOrApiKeyError(err)) console.error('Failed to sync brands from Supabase:', err);
@@ -1166,9 +1162,17 @@ export const marketplaceStore = {
   async saveBrandToSupabase(brand: Brand): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
       if (!brand.name || !brand.name.trim()) return { success: false, error: 'Brand name required' };
+      
+      // Save brand logo to brandLogos map in settings for cross-device sync
+      if (brand.logo) {
+        const brandLogos = getStored<Record<string, string>>('brandLogos', {});
+        brandLogos[brand.name.trim().toLowerCase()] = brand.logo;
+        setStored('brandLogos', brandLogos);
+        this.saveSettingsToSupabase().catch(() => {});
+      }
+
       const payload: any = {
         name: brand.name.trim(),
-        logo_url: brand.logo || null,
         status: brand.status === 'active' ? 'Active' : 'Inactive'
       };
       const isUUID = typeof brand.id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(brand.id);
@@ -1630,17 +1634,114 @@ export const marketplaceStore = {
 
   async syncAllFromSupabase(): Promise<void> {
     await Promise.all([
+      this.syncSettingsFromSupabase(),
       this.syncProductsFromSupabase(),
-      this.syncDeliveryPartnersFromSupabase(),
-      this.syncCouponsFromSupabase(),
       this.syncCategoriesFromSupabase(),
       this.syncBrandsFromSupabase(),
+      this.syncDeliveryPartnersFromSupabase(),
+      this.syncCouponsFromSupabase(),
       this.syncVendorsFromSupabase(),
       this.syncOrdersFromSupabase(),
       this.syncCustomersFromSupabase()
     ]);
-    await this.pushLocalDataToSupabase();
     this.dispatchAllEvents();
+  },
+
+  // --- SUPABASE CLOUD SETTINGS & POLICIES SYNC ---
+  async syncSettingsFromSupabase(): Promise<void> {
+    try {
+      const { data, error } = await supabase.from('platform_settings').select('*').limit(1);
+      if (error) {
+        if (!isAuthOrApiKeyError(error)) console.warn('Supabase fetch platform settings error:', error.message);
+        return;
+      }
+      if (data && data.length > 0) {
+        const row = data[0];
+        if (row.company_name) {
+          localStorage.setItem('companyName', row.company_name);
+        }
+        if (row.header_address) {
+          try {
+            const parsedContact = JSON.parse(row.header_address);
+            if (parsedContact && typeof parsedContact === 'object') {
+              setStored('contactInfo', parsedContact);
+            }
+          } catch (e) {
+            const current = this.getContactInfo();
+            current.storeAddress = row.header_address;
+            setStored('contactInfo', current);
+          }
+        }
+        if (row.about_us_photo_url) {
+          try {
+            const parsedConfig = JSON.parse(row.about_us_photo_url);
+            if (parsedConfig && typeof parsedConfig === 'object') {
+              if (parsedConfig.policies) {
+                setStored('policies', parsedConfig.policies);
+              }
+              if (parsedConfig.paymentGateways) {
+                setStored('paymentGateways', parsedConfig.paymentGateways);
+              }
+              if (parsedConfig.mediaAssets) {
+                setStored('mediaAssets', parsedConfig.mediaAssets);
+              }
+              if (parsedConfig.brandLogos) {
+                setStored('brandLogos', parsedConfig.brandLogos);
+              }
+            }
+          } catch (e) {
+            // Not json
+          }
+        }
+        if (row.display_tax_inclusive !== undefined) {
+          localStorage.setItem('displayTaxInclusive', String(row.display_tax_inclusive));
+        }
+
+        window.dispatchEvent(new Event('store_policies_updated'));
+        window.dispatchEvent(new Event('store_contactInfo_updated'));
+        window.dispatchEvent(new Event('store_mediaAssets_updated'));
+        window.dispatchEvent(new Event('store_paymentGateways_updated'));
+        window.dispatchEvent(new Event('settingsUpdated'));
+      }
+    } catch (err) {
+      if (!isAuthOrApiKeyError(err)) console.warn('Failed to sync settings from Supabase:', err);
+    }
+  },
+
+  async saveSettingsToSupabase(): Promise<void> {
+    try {
+      const companyName = this.getCompanyName();
+      const contactInfo = this.getContactInfo();
+      const mediaAssets = this.getMediaAssets();
+      const paymentGateways = this.getPaymentGateways();
+      const policies = this.getPolicies();
+      const brandLogos = getStored<Record<string, string>>('brandLogos', {});
+
+      const payload = {
+        company_name: companyName,
+        support_email: contactInfo.supportEmail || contactInfo.email || 'techwickcart@gmail.com',
+        contact_number: contactInfo.mobileNumber || contactInfo.supportNumber || '+91 9876543210',
+        header_address: JSON.stringify(contactInfo),
+        logo_url: mediaAssets.logo || null,
+        about_us_photo_url: JSON.stringify({
+          policies,
+          paymentGateways,
+          mediaAssets,
+          brandLogos
+        }),
+        display_tax_inclusive: this.getTaxInclusive(),
+        updated_at: new Date().toISOString()
+      };
+
+      const { data: existing } = await supabase.from('platform_settings').select('id').limit(1);
+      if (existing && existing.length > 0) {
+        await supabase.from('platform_settings').update(payload).eq('id', existing[0].id);
+      } else {
+        await supabase.from('platform_settings').insert([payload]);
+      }
+    } catch (err) {
+      if (!isAuthOrApiKeyError(err)) console.warn('Supabase save settings error:', err);
+    }
   },
 
   // SETTINGS
@@ -1650,6 +1751,7 @@ export const marketplaceStore = {
   saveCompanyName(name: string): void {
     localStorage.setItem('companyName', name);
     window.dispatchEvent(new Event('settingsUpdated'));
+    this.saveSettingsToSupabase().catch(() => {});
   },
 
   // NEW DYNAMIC ENTITIES FOR FULL WIPE CAPABILITY
@@ -2627,6 +2729,8 @@ export const marketplaceStore = {
   saveContactInfo(info: any): void {
     setStored('contactInfo', info);
     window.dispatchEvent(new Event('store_contactInfo_updated'));
+    window.dispatchEvent(new Event('settingsUpdated'));
+    this.saveSettingsToSupabase().catch(() => {});
   },
 
   getMediaAssets(): {
@@ -2653,6 +2757,8 @@ export const marketplaceStore = {
   saveMediaAssets(assets: any): void {
     setStored('mediaAssets', assets);
     window.dispatchEvent(new Event('store_mediaAssets_updated'));
+    window.dispatchEvent(new Event('settingsUpdated'));
+    this.saveSettingsToSupabase().catch(() => {});
   },
 
   getPolicies(): {
@@ -2693,6 +2799,8 @@ export const marketplaceStore = {
   savePolicies(policies: any): void {
     setStored('policies', policies);
     window.dispatchEvent(new Event('store_policies_updated'));
+    window.dispatchEvent(new Event('settingsUpdated'));
+    this.saveSettingsToSupabase().catch(() => {});
   },
 
   getPaymentGateways(): {
@@ -2748,6 +2856,8 @@ export const marketplaceStore = {
   savePaymentGateways(gateways: any): void {
     setStored('paymentGateways', gateways);
     window.dispatchEvent(new Event('store_paymentGateways_updated'));
+    window.dispatchEvent(new Event('settingsUpdated'));
+    this.saveSettingsToSupabase().catch(() => {});
   },
 
   restoreDummyData(): void {
@@ -2766,7 +2876,7 @@ export const marketplaceStore = {
       'products', 'orders', 'sellers', 'coupons', 'deliveryPartners',
       'categories', 'subcategories', 'withdrawals', 'customers',
       'globalInventory', 'transactions', 'walletTransactions', 'vendorRegistrations', 'brands',
-      'referralConfig', 'referralsList', 'warehouses', 'deliveryZones'
+      'referralConfig', 'referralsList', 'warehouses', 'deliveryZones', 'policies', 'contactInfo', 'mediaAssets', 'paymentGateways'
     ];
     keys.forEach(k => {
       window.dispatchEvent(new Event(`store_${k}_updated`));
@@ -2792,19 +2902,52 @@ if (typeof window !== 'undefined') {
     localStorage.setItem('initialCleanSlateApplied_v4', 'true');
   }
 
-  // Real-time Supabase subscription for cross-device updates
+  // Cross-Device Real-time Supabase subscriptions
   try {
     if (supabase && typeof supabase.channel === 'function') {
       supabase
-        .channel('wikcart-realtime-brands')
+        .channel('wikcart-realtime-all')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
+          marketplaceStore.syncProductsFromSupabase().catch(() => {});
+        })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'brands' }, () => {
           marketplaceStore.syncBrandsFromSupabase().catch(() => {});
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, () => {
+          marketplaceStore.syncCategoriesFromSupabase().catch(() => {});
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'platform_settings' }, () => {
+          marketplaceStore.syncSettingsFromSupabase().catch(() => {});
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'vendors' }, () => {
+          marketplaceStore.syncVendorsFromSupabase().catch(() => {});
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_orders' }, () => {
+          marketplaceStore.syncOrdersFromSupabase().catch(() => {});
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, () => {
+          marketplaceStore.syncCustomersFromSupabase().catch(() => {});
         })
         .subscribe();
     }
   } catch (e) {
     // Safe fallback if realtime is unavailable
   }
+
+  // Background polling every 5 seconds to ensure different browsers and background tabs stay 100% in sync
+  setInterval(() => {
+    marketplaceStore.syncAllFromSupabase().catch(() => {});
+  }, 5000);
+
+  // Sync on tab focus or visibility change
+  window.addEventListener('focus', () => {
+    marketplaceStore.syncAllFromSupabase().catch(() => {});
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      marketplaceStore.syncAllFromSupabase().catch(() => {});
+    }
+  });
 }
 
 
